@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 100% 98%;
+    --foreground: 30 10% 15%;
+
+    --card: 36 50% 98%;
+    --card-foreground: 30 10% 15%;
+
+    --popover: 36 50% 98%;
+    --popover-foreground: 30 10% 15%;
+
+    --primary: 27 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 100% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 30 10% 92%;
+    --muted-foreground: 30 10% 40%;
+
+    --accent: 340 80% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 10% 85%;
+    --input: 30 10% 85%;
+    --ring: 27 100% 50%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 30 20% 10%;
+    --foreground: 36 50% 90%;
+
+    --card: 30 20% 12%;
+    --card-foreground: 36 50% 90%;
+
+    --popover: 30 20% 12%;
+    --popover-foreground: 36 50% 90%;
+
+    --primary: 27 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 100% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 30 20% 20%;
+    --muted-foreground: 30 10% 70%;
+
+    --accent: 340 80% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 20% 25%;
+    --input: 30 20% 25%;
+    --ring: 27 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/70 rounded-full hover:bg-primary transition-colors;
+}
+
+/* Custom font classes */
+.font-sanskrit {
+  font-family: var(--font-sanskrit), serif;
+}
+
+.font-tamil {
+  font-family: var(--font-tamil), sans-serif;
+}
+
+/* Decorative elements */
+.lotus-divider {
+  background-image: url("/decorative/lotus-divider.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  height: 24px;
+  margin: 1rem 0;
+}
+
+.peacock-border {
+  border-image: url("/decorative/peacock-border.svg") 30 round;
+  border-width: 10px;
+  border-style: solid;
+}
+
