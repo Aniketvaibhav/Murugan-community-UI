@@ -254,17 +254,15 @@ export function PostCard({ post, onDelete }: PostCardProps) {
                     <AvatarFallback>{comment.author.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <div className="rounded-lg bg-muted p-3">
-                      <div className="flex items-center justify-between">
-                        <Link href={`/profile/${comment.author.username}`} className="font-medium hover:underline">
-                          {comment.author.name}
-                        </Link>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(comment.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="mt-1">{comment.content}</p>
+                    <div className="flex items-center space-x-2">
+                      <Link href={`/profile/${comment.author.username}`} className="font-medium hover:underline">
+                        {comment.author.name}
+                      </Link>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(comment.createdAt).toLocaleDateString()}
+                      </span>
                     </div>
+                    <p className="mt-1">{comment.content}</p>
                   </div>
                 </div>
               ))}
