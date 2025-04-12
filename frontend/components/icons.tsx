@@ -78,4 +78,3 @@ export const Icons = {
   twitter: Twitter,
   check: Check,
 }
-

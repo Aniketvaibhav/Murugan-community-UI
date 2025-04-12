@@ -312,4 +312,3 @@ export function BlogDetail({
     </div>
   )
 }
-

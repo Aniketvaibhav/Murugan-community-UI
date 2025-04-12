@@ -7,10 +7,13 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MapPin, Calendar, BookOpen, FileText, Mic, UserPlus } from "lucide-react"
+import { MapPin, Calendar, BookOpen, FileText, Mic, UserPlus, UserMinus, Loader2 } from "lucide-react"
 import { PostFeed } from "@/components/post/post-feed"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
+import { followUser } from "@/actions/follow-actions"
+import { useAuth } from "@/contexts/auth-context"
+import { FollowersList } from "@/components/profile/followers-list"
 
 // Mock user profile data
 const mockUserProfile = {
@@ -34,7 +37,9 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState<typeof mockUserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
+  const [isFollowLoading, setIsFollowLoading] = useState(false)
   const { toast } = useToast()
+  const { user, isAuthenticated } = useAuth()
 
   useEffect(() => {
     // In a real app, this would fetch the user profile from an API
@@ -45,12 +50,57 @@ export default function UserProfilePage() {
     }, 1000)
   }, [username])
 
-  const handleFollow = () => {
-    setIsFollowing(!isFollowing)
-    toast({
-      title: isFollowing ? "Unfollowed" : "Following",
-      description: isFollowing ? `You have unfollowed ${profile?.name}` : `You are now following ${profile?.name}`,
-    })
+  const handleFollow = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to follow users",
+      })
+      return
+    }
+
+    // Don't allow users to follow themselves
+    if (user?.username === username) {
+      toast({
+        title: "Cannot follow yourself",
+        description: "You cannot follow your own profile",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsFollowLoading(true)
+
+    try {
+      const result = await followUser(username, isFollowing)
+
+      if (result.success) {
+        setIsFollowing(result.isFollowing)
+
+        // Update follower count
+        if (profile) {
+          setProfile({
+            ...profile,
+            followers: result.isFollowing ? profile.followers + 1 : profile.followers - 1,
+          })
+        }
+
+        toast({
+          title: result.isFollowing ? "Following" : "Unfollowed",
+          description: result.isFollowing
+            ? `You are now following ${profile?.name}`
+            : `You have unfollowed ${profile?.name}`,
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update follow status. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsFollowLoading(false)
+    }
   }
 
   if (isLoading) {
@@ -97,16 +147,33 @@ export default function UserProfilePage() {
       <div className="container relative -mt-20 px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center space-y-4 sm:flex-row sm:items-end sm:space-x-6 sm:space-y-0">
           <Avatar className="h-32 w-32 border-4 border-background sm:h-40 sm:w-40">
-            <AvatarImage src={profile.avatar} alt={profile.name} />
+            <AvatarImage src={profile.avatar || "/placeholder.svg"} alt={profile.name} />
             <AvatarFallback>{profile.name.substring(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex flex-1 flex-col space-y-1 text-center sm:text-left">
             <h1 className="text-2xl font-bold sm:text-3xl">{profile.name}</h1>
             <p className="text-muted-foreground">@{profile.username}</p>
           </div>
-          <Button variant={isFollowing ? "outline" : "default"} size="sm" className="gap-1" onClick={handleFollow}>
-            <UserPlus className="h-4 w-4" />
-            {isFollowing ? "Following" : "Follow"}
+          <Button
+            variant={isFollowing ? "outline" : "default"}
+            size="sm"
+            className="gap-1"
+            onClick={handleFollow}
+            disabled={isFollowLoading || user?.username === username}
+          >
+            {isFollowLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isFollowing ? (
+              <>
+                <UserMinus className="h-4 w-4" />
+                Following
+              </>
+            ) : (
+              <>
+                <UserPlus className="h-4 w-4" />
+                Follow
+              </>
+            )}
           </Button>
         </div>
 
@@ -130,11 +197,15 @@ export default function UserProfilePage() {
                 </div>
                 <div className="flex justify-between pt-2 text-sm">
                   <div className="text-center">
-                    <p className="font-medium">{profile.followers}</p>
+                    <p className="font-medium">
+                      <FollowersList count={profile.followers} type="followers" username={profile.username} />
+                    </p>
                     <p className="text-muted-foreground">Followers</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-medium">{profile.following}</p>
+                    <p className="font-medium">
+                      <FollowersList count={profile.following} type="following" username={profile.username} />
+                    </p>
                     <p className="text-muted-foreground">Following</p>
                   </div>
                   <div className="text-center">
@@ -187,4 +258,3 @@ export default function UserProfilePage() {
     </div>
   )
 }
-

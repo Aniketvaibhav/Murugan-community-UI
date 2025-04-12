@@ -1,7 +1,6 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { ClientOnly } from "@/components/client-only"
 
 type User = {
   id: string
@@ -23,17 +22,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
 
+  // Check for existing session on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("user")
     if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser)
-        setUser(userData)
-        setIsAuthenticated(true)
-      } catch (error) {
-        console.error("Error parsing stored user data:", error)
-        localStorage.removeItem("user")
-      }
+      const userData = JSON.parse(storedUser)
+      setUser(userData)
+      setIsAuthenticated(true)
     }
   }, [])
 
@@ -49,11 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("user")
   }
 
-  return (
-    <ClientOnly>
-      <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>{children}</AuthContext.Provider>
-    </ClientOnly>
-  )
+  return <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
@@ -63,4 +54,3 @@ export function useAuth() {
   }
   return context
 }
-

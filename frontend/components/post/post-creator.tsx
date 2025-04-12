@@ -241,4 +241,3 @@ export function PostCreator() {
     </form>
   )
 }
-

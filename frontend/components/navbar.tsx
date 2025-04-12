@@ -89,6 +89,7 @@ export function Navbar() {
                     <NavigationMenuLink
                       className={cn(
                         navigationMenuTriggerStyle(),
+                        "hover:bg-peacock-400 hover:text-white hover:shadow-md hover:bg-gradient-to-b hover:from-peacock-300 hover:to-peacock-500",
                         pathname === item.href ? "bg-peacock-200 text-peacock-900" : "",
                       )}
                     >
@@ -187,7 +188,7 @@ export function Navbar() {
           ) : (
             <div className="flex gap-2">
               <Link href="/login">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="hover:bg-peacock-100 hover:text-peacock-800">
                   Login
                 </Button>
               </Link>
@@ -201,4 +202,3 @@ export function Navbar() {
     </header>
   )
 }
-

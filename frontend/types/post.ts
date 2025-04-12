@@ -37,4 +37,3 @@ export interface Post {
   tags: PostTag[]
   isLiked?: boolean
 }
-

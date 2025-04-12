@@ -11,6 +11,7 @@ import { UpcomingEvents } from "@/components/upcoming-events"
 import { useAuth } from "@/contexts/auth-context"
 import { PostFeed } from "@/components/post/post-feed"
 import { useAuthRedirect } from "@/utils/auth-redirect"
+import { HeroSlider } from "@/components/hero-slider"
 
 export default function Home() {
   const { isAuthenticated } = useAuth()
@@ -62,25 +63,8 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-b from-saffron-100 to-background py-20 md:py-32">
-        <div className="absolute inset-0 bg-[url('/patterns/mandala-pattern.svg')] bg-repeat opacity-5"></div>
-        <div className="container relative z-10 flex flex-col items-center text-center">
-          <h1 className="max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-            Welcome to the <span className="text-primary">Lord Murugan</span> Community
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            Connect with fellow devotees, share your experiences, and deepen your spiritual journey in this vibrant
-            community dedicated to Lord Murugan.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <Button size="lg" asChild>
-              <Link href="/register">Join the Community</Link>
-            </Button>
-            <Button size="lg" variant="outline" onClick={(e) => handleViewAllClick(e, "learning resources")} asChild>
-              <Link href="/learn">Learn About Lord Murugan</Link>
-            </Button>
-          </div>
-        </div>
+      <section className="relative">
+        <HeroSlider />
       </section>
 
       {/* Features Section */}
@@ -200,12 +184,15 @@ export default function Home() {
         <div className="container">
           <div className="grid grid-cols-1">
             <div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Featured Blogs</h2>
                 <Button variant="link" onClick={(e) => handleViewAllClick(e, "blogs")} asChild>
                   <Link href="/blogs">View All</Link>
                 </Button>
               </div>
+              <p className="text-muted-foreground mb-6">
+                Click on a blog to expand and read more. Sign in to access the full articles.
+              </p>
               <FeaturedBlogs />
             </div>
           </div>
@@ -257,4 +244,3 @@ export default function Home() {
     </div>
   )
 }
-

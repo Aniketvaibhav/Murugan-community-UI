@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Edit, Settings, Users, Mic, BookOpen, MapPin, Calendar, FileText, PlusCircle } from "lucide-react"
 import { PostFeed } from "@/components/post/post-feed"
+import { FollowersList } from "@/components/profile/followers-list"
 
 // Mock user data
 const user = {
@@ -79,7 +80,7 @@ export default function ProfilePage() {
       <div className="container relative -mt-20 px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center space-y-4 sm:flex-row sm:items-end sm:space-x-6 sm:space-y-0">
           <Avatar className="h-32 w-32 border-4 border-background sm:h-40 sm:w-40">
-            <AvatarImage src={user.avatar} alt={user.name} />
+            <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
             <AvatarFallback>RK</AvatarFallback>
           </Avatar>
           <div className="flex flex-1 flex-col space-y-1 text-center sm:text-left">
@@ -87,9 +88,11 @@ export default function ProfilePage() {
             <p className="text-muted-foreground">@{user.username}</p>
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline" size="sm" className="gap-1">
-              <Edit className="h-4 w-4" />
-              Edit Profile
+            <Button variant="outline" size="sm" className="gap-1" asChild>
+              <Link href="/profile/edit">
+                <Edit className="h-4 w-4" />
+                Edit Profile
+              </Link>
             </Button>
             <Button variant="outline" size="icon" asChild>
               <Link href="/settings">
@@ -122,11 +125,15 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex justify-between pt-2 text-sm">
                   <div className="text-center">
-                    <p className="font-medium">{user.followers}</p>
+                    <p className="font-medium">
+                      <FollowersList count={user.followers} type="followers" username={user.username} />
+                    </p>
                     <p className="text-muted-foreground">Followers</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-medium">{user.following}</p>
+                    <p className="font-medium">
+                      <FollowersList count={user.following} type="following" username={user.username} />
+                    </p>
                     <p className="text-muted-foreground">Following</p>
                   </div>
                   <div className="text-center">
@@ -228,4 +235,3 @@ export default function ProfilePage() {
     </div>
   )
 }
-

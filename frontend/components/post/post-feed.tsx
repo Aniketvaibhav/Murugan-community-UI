@@ -229,4 +229,3 @@ export function PostFeed({ userOnly = false, username }: PostFeedProps) {
     </div>
   )
 }
-

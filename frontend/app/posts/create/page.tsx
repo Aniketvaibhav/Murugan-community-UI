@@ -1,3 +1,5 @@
+"use client"
+
 import { PostCreator } from "@/components/post/post-creator"
 
 export default function CreatePostPage() {
@@ -13,4 +15,3 @@ export default function CreatePostPage() {
     </div>
   )
 }
-

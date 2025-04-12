@@ -1,8 +1,9 @@
+"use client"
+
 import { PostFeed } from "@/components/post/post-feed"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { PlusCircle } from "lucide-react"
-import { ClientOnly } from "@/components/client-only"
 
 export default function PostsPage() {
   return (
@@ -21,11 +22,8 @@ export default function PostsPage() {
           </Button>
         </div>
 
-        <ClientOnly>
-          <PostFeed />
-        </ClientOnly>
+        <PostFeed />
       </div>
     </div>
   )
 }
-

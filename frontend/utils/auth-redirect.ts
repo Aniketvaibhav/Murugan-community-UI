@@ -24,4 +24,3 @@ export function useAuthRedirect() {
 
   return { redirectToLogin }
 }
-

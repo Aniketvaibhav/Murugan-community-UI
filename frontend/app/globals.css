@@ -89,6 +89,26 @@
   @apply bg-primary/70 rounded-full hover:bg-primary transition-colors;
 }
 
+/* Custom scrollbar for dark cards */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
 /* Custom font classes */
 .font-sanskrit {
   font-family: var(--font-sanskrit), serif;
@@ -112,4 +132,3 @@
   border-width: 10px;
   border-style: solid;
 }
-

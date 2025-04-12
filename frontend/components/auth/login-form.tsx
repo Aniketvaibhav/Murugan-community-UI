@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,8 +14,23 @@ import { useAuth } from "@/contexts/auth-context"
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const { login } = useAuth()
+
+  useEffect(() => {
+    const error = searchParams.get("error")
+    if (error) {
+      toast({
+        title: "Authentication Error",
+        description:
+          error === "google_auth_failed"
+            ? "Failed to authenticate with Google. Please try again."
+            : "An error occurred during authentication.",
+        variant: "destructive",
+      })
+    }
+  }, [searchParams, toast])
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -90,7 +105,7 @@ export function LoginForm() {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Button variant="outline" type="button" disabled={isLoading}>
+        <Button variant="outline" type="button" disabled={isLoading} onClick={() => router.push("/api/auth/google")}>
           <Icons.google className="mr-2 h-4 w-4" />
           Google
         </Button>
@@ -102,4 +117,3 @@ export function LoginForm() {
     </div>
   )
 }
-
