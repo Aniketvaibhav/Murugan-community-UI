@@ -15,20 +15,43 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { Icons } from "@/components/icons"
 import { Camera, MapPin, Calendar, X } from "lucide-react"
+import axios from 'axios'
+import { format } from "date-fns"
+
+// API configuration
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const BACKEND_URL = API_URL.replace('/api', '') // Remove /api to get base URL
+
+interface UserProfile {
+  _id: string;
+  name: string;
+  username: string;
+  email: string;
+  bio: string;
+  location: string;
+  avatar?: string;
+  coverImage?: string;
+  createdAt: string;
+  followers: number;
+  following: number;
+  posts: number;
+}
 
 export default function EditProfilePage() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, updateUserData } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
 
-  // Form state
+  // Initialize form state
   const [name, setName] = useState("")
   const [username, setUsername] = useState("")
   const [bio, setBio] = useState("")
   const [location, setLocation] = useState("")
-  const [profileImage, setProfileImage] = useState<string | null>(null)
-  const [coverImage, setCoverImage] = useState<string | null>(null)
+  const [profileImage, setProfileImage] = useState<string>("/placeholder.svg?height=128&width=128")
+  const [coverImage, setCoverImage] = useState<string>("/placeholder.svg?height=300&width=1200")
+  const [joinedDate, setJoinedDate] = useState<string | null>(null)
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null)
 
@@ -36,24 +59,112 @@ export default function EditProfilePage() {
   const profileImageInputRef = useRef<HTMLInputElement>(null)
   const coverImageInputRef = useRef<HTMLInputElement>(null)
 
-  // Load user data on component mount
+  // Set initial form data from user context
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (user) {
+      setName(user.name || "")
+      setUsername(user.username || "")
+      setBio(user.bio || "")
+      setLocation(user.location || "")
+      setProfileImage(user.avatar || "/placeholder.svg?height=128&width=128")
+      setCoverImage(user.coverImage || "/placeholder.svg?height=300&width=1200")
+      if (user.createdAt) {
+        setJoinedDate(format(new Date(user.createdAt), 'MMMM yyyy'))
+      }
+    }
+  }, [user])
+
+  // Fetch user data
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
       router.push("/login")
       return
     }
 
-    if (user) {
-      setName(user.name || "")
-      setUsername(user.username || "")
-      setBio(
-        "Devoted follower of Lord Murugan. Passionate about sharing spiritual experiences and connecting with fellow devotees.",
-      )
-      setLocation("Chennai, Tamil Nadu")
-      setProfileImage(user.avatar || "/placeholder.svg?height=128&width=128")
-      setCoverImage("/placeholder.svg?height=300&width=1200")
+    if (!hasAttemptedFetch && isAuthenticated) {
+      const fetchUserData = async () => {
+        try {
+          const token = localStorage.getItem('token')
+          if (!token) {
+            router.push('/login')
+            return
+          }
+
+          const response = await axios.get(`${API_URL}/users/profile`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          })
+
+          console.log('API Response:', response.data)
+
+          if (!response.data?.data?.user) {
+            throw new Error('Invalid response format')
+          }
+
+          const userData = response.data.data.user
+
+          console.log('Processing user data:', userData)
+
+          // Update form fields
+          setName(userData.name)
+          setUsername(userData.username)
+          setBio(userData.bio || "")
+          setLocation(userData.location || "")
+
+          // Handle image URLs
+          const avatarUrl = userData.avatar ? 
+            (userData.avatar.startsWith('http') ? userData.avatar : `${BACKEND_URL}${userData.avatar}`) :
+            "/placeholder.svg?height=128&width=128"
+          
+          const coverImageUrl = userData.coverImage ?
+            (userData.coverImage.startsWith('http') ? userData.coverImage : `${BACKEND_URL}${userData.coverImage}`) :
+            "/placeholder.svg?height=300&width=1200"
+
+          setProfileImage(avatarUrl)
+          setCoverImage(coverImageUrl)
+
+          if (userData.createdAt) {
+            setJoinedDate(format(new Date(userData.createdAt), 'MMMM yyyy'))
+          }
+
+          // Update auth context
+          updateUserData({
+            ...userData,
+            id: userData._id,
+            avatar: avatarUrl,
+            coverImage: coverImageUrl
+          })
+
+          console.log('Form state updated:', {
+            name: userData.name,
+            username: userData.username,
+            bio: userData.bio,
+            location: userData.location
+          })
+
+        } catch (error: any) {
+          console.error('Error details:', error.response || error)
+          toast({
+            title: "Error loading profile",
+            description: error.response?.data?.message || "Failed to load user data",
+            variant: "destructive",
+          })
+          
+          if (error.response?.status === 401) {
+            router.push('/login')
+          }
+        } finally {
+          setIsLoading(false)
+          setHasAttemptedFetch(true)
+        }
+      }
+
+      fetchUserData()
     }
-  }, [user, isAuthenticated, router])
+  }, [isAuthenticated, hasAttemptedFetch, router, toast, updateUserData])
+
+  console.log('Render state:', { isLoading, isAuthenticated })
 
   const handleProfileImageClick = () => {
     profileImageInputRef.current?.click()
@@ -82,7 +193,7 @@ export default function EditProfilePage() {
   }
 
   const handleRemoveProfileImage = () => {
-    setProfileImage(user?.avatar || "/placeholder.svg?height=128&width=128")
+    setProfileImage("/placeholder.svg?height=128&width=128")
     setProfileImageFile(null)
     if (profileImageInputRef.current) {
       profileImageInputRef.current.value = ""
@@ -109,20 +220,88 @@ export default function EditProfilePage() {
       return
     }
 
-    setIsSubmitting(true)
+    setIsLoading(true)
 
-    // In a real app, this would upload the images to a storage service
-    // and then update the user profile in the database
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        throw new Error('No authentication token')
+      }
 
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated",
+      // Create form data for file upload
+      const formData = new FormData()
+      formData.append('name', name)
+      formData.append('username', username)
+      formData.append('bio', bio)
+      formData.append('location', location)
+      
+      if (profileImageFile) {
+        formData.append('avatar', profileImageFile)
+      }
+      if (coverImageFile) {
+        formData.append('coverImage', coverImageFile)
+      }
+
+      // Update profile
+      const response = await axios.put(`${API_URL}/users/profile`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
       })
-      setIsSubmitting(false)
-      router.push("/profile")
-    }, 1500)
+
+      if (response.data.data.user) {
+        const updatedUserData = {
+          ...response.data.data.user,
+          id: response.data.data.user._id,
+          avatar: response.data.data.user.avatar ? 
+            (response.data.data.user.avatar.startsWith('http') ? 
+              response.data.data.user.avatar : 
+              `${BACKEND_URL}${response.data.data.user.avatar}`
+            ) : undefined,
+          coverImage: response.data.data.user.coverImage ? 
+            (response.data.data.user.coverImage.startsWith('http') ? 
+              response.data.data.user.coverImage : 
+              `${BACKEND_URL}${response.data.data.user.coverImage}`
+            ) : undefined
+        }
+        
+        updateUserData(updatedUserData)
+        
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been successfully updated",
+        })
+
+        router.push("/profile")
+      }
+    } catch (error: any) {
+      console.error('Error updating profile:', error)
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update profile",
+        variant: "destructive",
+      })
+
+      if (error.response?.status === 401) {
+        router.push('/login')
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container py-10">
+        <div className="mx-auto max-w-3xl">
+          <div className="flex items-center justify-center p-8">
+            <Icons.spinner className="h-8 w-4 animate-spin" />
+            <span className="ml-2">Loading profile...</span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
@@ -185,7 +364,11 @@ export default function EditProfilePage() {
             <CardContent className="flex flex-col items-center">
               <div className="relative">
                 <Avatar className="h-32 w-32 cursor-pointer border-4 border-background">
-                  <AvatarImage src={profileImage || ""} alt="Profile" />
+                  <AvatarImage 
+                    src={profileImage} 
+                    alt="Profile"
+                    onError={() => setProfileImage("/placeholder.svg?height=128&width=128")}
+                  />
                   <AvatarFallback>{name.substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity hover:opacity-100">
@@ -275,7 +458,7 @@ export default function EditProfilePage() {
                 <Label>Joined Date</Label>
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  <span>January 2023 (not editable)</span>
+                  <span>{joinedDate || 'Loading...'}</span>
                 </div>
               </div>
             </CardContent>
@@ -283,8 +466,8 @@ export default function EditProfilePage() {
               <Button type="button" variant="outline" onClick={() => router.back()}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
             </CardFooter>

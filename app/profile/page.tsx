@@ -1,91 +1,185 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import axios from "axios"
+import { format } from "date-fns"
+import { Loader2, Edit, Settings, Users, Mic, BookOpen, MapPin, Calendar, FileText, PlusCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Settings, Users, Mic, BookOpen, MapPin, Calendar, FileText, PlusCircle } from "lucide-react"
 import { PostFeed } from "@/components/post/post-feed"
 import { FollowersList } from "@/components/profile/followers-list"
+import { useAuth } from "@/contexts/auth-context"
 
-// Mock user data
-const user = {
-  name: "Ramesh Kumar",
-  username: "rameshk",
-  avatar: "/placeholder.svg?height=128&width=128",
-  coverImage: "/placeholder.svg?height=300&width=1200",
-  bio: "Devoted follower of Lord Murugan. Passionate about sharing spiritual experiences and connecting with fellow devotees.",
-  location: "Chennai, Tamil Nadu",
-  joinedDate: "Joined January 2023",
-  followers: 245,
-  following: 132,
-  posts: 37,
+// API configuration
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API_BASE_URL = API_URL.replace('/api', '') // Remove /api for media URLs
+
+// Type definitions for data structures
+type UserData = {
+  _id: string
+  name: string
+  username: string
+  avatar: string
+  coverImage: string
+  bio: string
+  location: string
+  createdAt: string
+  followers: number
+  following: number
+  posts: number
 }
 
-// Mock user content
-const userBlogs = [
-  {
-    id: 1,
-    title: "My Pilgrimage to Palani Temple",
-    excerpt: "Sharing my spiritual journey to one of the six abodes of Lord Murugan...",
-    date: "May 15, 2023",
-    likes: 42,
-    comments: 12,
-  },
-  {
-    id: 2,
-    title: "The Divine Experience at Thiruchendur",
-    excerpt: "My visit to the coastal temple of Lord Murugan and the spiritual awakening I experienced...",
-    date: "June 28, 2023",
-    likes: 38,
-    comments: 9,
-  },
-  {
-    id: 3,
-    title: "Celebrating Thaipusam: A Personal Account",
-    excerpt: "My experience participating in the Thaipusam festival for the first time...",
-    date: "February 10, 2023",
-    likes: 56,
-    comments: 15,
-  },
-]
+type Blog = {
+  id: string
+  title: string
+  excerpt: string
+  date: string
+  likes: number
+  comments: number
+}
 
-const userVoiceRooms = [
-  {
-    id: 1,
-    title: "Morning Prayer Session",
-    participants: 12,
-    date: "Hosted on June 15, 2023",
-    isRecurring: true,
-  },
-  {
-    id: 2,
-    title: "Discussion: Skanda Purana",
-    participants: 8,
-    date: "Hosted on July 5, 2023",
-    isRecurring: false,
-  },
-]
+type VoiceRoom = {
+  id: string
+  title: string
+  participants: number
+  date: string
+  isRecurring: boolean
+}
 
 export default function ProfilePage() {
+  // Auth and routing hooks
+  const { user, isAuthenticated, loading: authLoading } = useAuth()
+  const router = useRouter()
+
+  // State management
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [userBlogs, setUserBlogs] = useState<Blog[]>([])
+  const [userVoiceRooms, setUserVoiceRooms] = useState<VoiceRoom[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [authLoading, isAuthenticated, router])
+
+  // Fetch user data and related content
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!isAuthenticated) return;
+      
+      setLoading(true); // Reset loading state when refetching
+      
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) {
+          router.push('/login')
+          return
+        }
+
+        // Fetch user profile data
+        const response = await axios.get(`${API_URL}/users/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const profileData = response.data.data.user;
+        
+        setUserData({
+          _id: profileData._id,
+          name: profileData.name,
+          username: profileData.username,
+          avatar: profileData.avatar ? `${API_BASE_URL}${profileData.avatar}` : "/placeholder.svg",
+          coverImage: profileData.coverImage ? `${API_BASE_URL}${profileData.coverImage}` : "/placeholder.svg",
+          bio: profileData.bio || "Welcome to my profile!",
+          location: profileData.location || "Not specified",
+          createdAt: profileData.createdAt,
+          followers: profileData.followers || 0,
+          following: profileData.following || 0,
+          posts: profileData.posts || 0
+        });
+        
+        // Fetch additional user content
+        await Promise.all([
+          // Fetch blogs
+          axios.get(`${API_URL}/blogs/user/${profileData._id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+            .then(res => setUserBlogs(res.data.data.blogs))
+            .catch(() => setUserBlogs([])),
+          
+          // Fetch voice rooms
+          axios.get(`${API_URL}/voice-rooms/user/${profileData._id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+            .then(res => setUserVoiceRooms(res.data.data.rooms))
+            .catch(() => setUserVoiceRooms([]))
+        ]);
+      } catch (error) {
+        console.error('Error fetching user data:', error)
+        // Only redirect for auth errors
+        if (axios.isAxiosError(error) && [401, 403].includes(error.response?.status || 0)) {
+          router.push('/login')
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserData()
+  }, [isAuthenticated, router, user]) // Add user to dependencies
+
+  // Loading state
+  if (loading || authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  // Error state
+  if (!userData) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold">Error loading profile</h2>
+          <p className="text-muted-foreground">Please try again later</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col">
-      {/* Cover Image */}
+      {/* Cover Image Section */}
       <div className="relative h-48 w-full sm:h-64 md:h-80">
-        <Image src={user.coverImage || "/placeholder.svg"} alt="Cover" fill className="object-cover" priority />
+        <Image 
+          src={userData.coverImage || "/placeholder.svg"} 
+          alt="Cover" 
+          fill 
+          className="object-cover" 
+          priority 
+        />
       </div>
 
-      {/* Profile Info */}
+      {/* Main Profile Content */}
       <div className="container relative -mt-20 px-4 sm:px-6 lg:px-8">
+        {/* Profile Header */}
         <div className="flex flex-col items-center space-y-4 sm:flex-row sm:items-end sm:space-x-6 sm:space-y-0">
           <Avatar className="h-32 w-32 border-4 border-background sm:h-40 sm:w-40">
-            <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-            <AvatarFallback>RK</AvatarFallback>
+            <AvatarImage src={userData.avatar || "/placeholder.svg"} alt={userData.name} />
+            <AvatarFallback>{userData.name.charAt(0)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-1 flex-col space-y-1 text-center sm:text-left">
-            <h1 className="text-2xl font-bold sm:text-3xl">{user.name}</h1>
-            <p className="text-muted-foreground">@{user.username}</p>
+            <h1 className="text-2xl font-bold sm:text-3xl">{userData.name}</h1>
+            <p className="text-muted-foreground">@{userData.username}</p>
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" size="sm" className="gap-1" asChild>
@@ -103,7 +197,9 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Profile Content Grid */}
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-4">
+          {/* Sidebar */}
           <div className="md:col-span-1">
             <Card>
               <CardHeader>
@@ -111,36 +207,38 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm">{user.bio}</p>
+                  <p className="text-sm">{userData.bio}</p>
                 </div>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center">
                     <MapPin className="mr-2 h-4 w-4" />
-                    {user.location}
+                    {userData.location}
                   </div>
                   <div className="flex items-center">
                     <Calendar className="mr-2 h-4 w-4" />
-                    {user.joinedDate}
+                    {`Joined ${format(new Date(userData.createdAt), 'MMMM yyyy')}`}
                   </div>
                 </div>
+                {/* User Stats */}
                 <div className="flex justify-between pt-2 text-sm">
                   <div className="text-center">
                     <p className="font-medium">
-                      <FollowersList count={user.followers} type="followers" username={user.username} />
+                      <FollowersList count={userData.followers} type="followers" username={userData.username} />
                     </p>
                     <p className="text-muted-foreground">Followers</p>
                   </div>
                   <div className="text-center">
                     <p className="font-medium">
-                      <FollowersList count={user.following} type="following" username={user.username} />
+                      <FollowersList count={userData.following} type="following" username={userData.username} />
                     </p>
                     <p className="text-muted-foreground">Following</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-medium">{user.posts}</p>
+                    <p className="font-medium">{userData.posts}</p>
                     <p className="text-muted-foreground">Posts</p>
                   </div>
                 </div>
+                {/* Action Buttons */}
                 <div className="space-y-2 pt-4">
                   <Button variant="outline" className="w-full gap-2" asChild>
                     <Link href="/posts/create">
@@ -159,6 +257,7 @@ export default function ProfilePage() {
             </Card>
           </div>
 
+          {/* Main Content Tabs */}
           <div className="md:col-span-3">
             <Tabs defaultValue="posts" className="w-full">
               <TabsList className="mb-6 grid w-full grid-cols-3">
@@ -176,10 +275,12 @@ export default function ProfilePage() {
                 </TabsTrigger>
               </TabsList>
 
+              {/* Posts Tab */}
               <TabsContent value="posts" className="mt-0">
-                <PostFeed userOnly username={user.username} />
+                <PostFeed userOnly username={userData.username} />
               </TabsContent>
 
+              {/* Blogs Tab */}
               <TabsContent value="blogs" className="mt-0 space-y-4">
                 {userBlogs.map((blog) => (
                   <Card key={blog.id}>
@@ -189,7 +290,7 @@ export default function ProfilePage() {
                       </Link>
                       <p className="mt-2 text-muted-foreground">{blog.excerpt}</p>
                       <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                        <span>{blog.date}</span>
+                        <span>{format(new Date(blog.date), 'PP')}</span>
                         <div className="flex items-center space-x-4">
                           <span>{blog.likes} likes</span>
                           <span>{blog.comments} comments</span>
@@ -200,6 +301,7 @@ export default function ProfilePage() {
                 ))}
               </TabsContent>
 
+              {/* Voice Rooms Tab */}
               <TabsContent value="voice-rooms" className="mt-0 space-y-4">
                 {userVoiceRooms.map((room) => (
                   <Card key={room.id}>

@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -9,44 +7,37 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Icons } from "@/components/icons"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/auth-context"
 
-export function RegisterForm() {
-  const [isLoading, setIsLoading] = useState(false)
+export function LoginForm() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const router = useRouter()
   const { toast } = useToast()
+  const { login, loading, error } = useAuth()
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault()
-    setIsLoading(true)
-
-    // In a real app, this would call an API to register the user
-    setTimeout(() => {
-      setIsLoading(false)
+    try {
+      await login(email, password)
       toast({
-        title: "Account created!",
-        description: "You have successfully registered. Please check your email to verify your account.",
+        title: "Login successful!",
+        description: "Welcome back to the Lord Murugan Community.",
       })
-      router.push("/login")
-    }, 2000)
+      router.push("/")
+    } catch (err) {
+      toast({
+        title: "Authentication Error",
+        description: error || "An error occurred during login.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
     <div className="grid gap-6">
       <form onSubmit={onSubmit}>
         <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              placeholder="Enter your full name"
-              type="text"
-              autoCapitalize="none"
-              autoComplete="name"
-              autoCorrect="off"
-              disabled={isLoading}
-              required
-            />
-          </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -56,39 +47,30 @@ export function RegisterForm() {
               autoCapitalize="none"
               autoComplete="email"
               autoCorrect="off"
-              disabled={isLoading}
+              disabled={loading}
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
-              placeholder="Create a password"
+              placeholder="Enter your password"
               type="password"
               autoCapitalize="none"
-              autoComplete="new-password"
+              autoComplete="current-password"
               autoCorrect="off"
-              disabled={isLoading}
+              disabled={loading}
               required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="confirm-password">Confirm Password</Label>
-            <Input
-              id="confirm-password"
-              placeholder="Confirm your password"
-              type="password"
-              autoCapitalize="none"
-              autoComplete="new-password"
-              autoCorrect="off"
-              disabled={isLoading}
-              required
-            />
-          </div>
-          <Button disabled={isLoading}>
-            {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
-            Create Account
+          <Button disabled={loading}>
+            {loading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+            Sign In
           </Button>
         </div>
       </form>
@@ -101,11 +83,11 @@ export function RegisterForm() {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Button variant="outline" type="button" disabled={isLoading}>
+        <Button variant="outline" type="button" disabled={loading} onClick={() => router.push("/api/auth/google")}>
           <Icons.google className="mr-2 h-4 w-4" />
           Google
         </Button>
-        <Button variant="outline" type="button" disabled={isLoading}>
+        <Button variant="outline" type="button" disabled={loading}>
           <Icons.facebook className="mr-2 h-4 w-4" />
           Facebook
         </Button>
