@@ -103,3 +103,7 @@ frontend/
 ## 📄 License
 
 This project is private and proprietary. All rights reserved.
+<<<<<<< HEAD
+=======
+
+>>>>>>> abdd0d27ee5bfd750ca0ead45b6b6f34b02ba405
