@@ -2,6 +2,7 @@ export interface PostMedia {
   id: string
   type: "image" | "video"
   url: string
+  file?: File
 }
 
 export interface PostComment {

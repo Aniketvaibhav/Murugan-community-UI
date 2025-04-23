@@ -13,6 +13,7 @@ import { Icons } from "@/components/icons"
 import { Image, Video, X, Tag } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import type { PostMedia } from "@/types/post"
+import { createPost } from "@/lib/api/post"
 
 export function PostCreator() {
   const [content, setContent] = useState("")
@@ -24,7 +25,7 @@ export function PostCreator() {
   const videoInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const router = useRouter()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, login } = useAuth()
 
   const handleImageClick = () => {
     imageInputRef.current?.click()
@@ -48,6 +49,7 @@ export function PostCreator() {
         id: `media-${Date.now()}-${i}`,
         type,
         url: previewUrl,
+        file,
       })
     }
 
@@ -87,6 +89,7 @@ export function PostCreator() {
         description: "Please log in to create a post",
         variant: "destructive",
       })
+      router.push("/login")
       return
     }
 
@@ -102,24 +105,33 @@ export function PostCreator() {
     setIsSubmitting(true)
 
     try {
-      // In a real app, this would upload media files to a storage service
-      // and then save the post with media URLs to a database
-
-      // Mock successful post creation
-      setTimeout(() => {
-        toast({
-          title: "Post created!",
-          description: "Your post has been successfully published.",
-        })
-        setIsSubmitting(false)
-        router.push("/posts")
-      }, 1500)
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to publish post. Please try again.",
-        variant: "destructive",
+      await createPost({
+        content,
+        media: mediaItems,
+        tags,
       })
+
+      toast({
+        title: "Post created!",
+        description: "Your post has been successfully published.",
+      })
+      router.push("/posts")
+    } catch (error: any) {
+      if (error.message === "Please log in to create a post") {
+        toast({
+          title: "Session expired",
+          description: "Please log in again to continue",
+          variant: "destructive",
+        })
+        router.push("/login")
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to publish post. Please try again.",
+          variant: "destructive",
+        })
+      }
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -215,7 +227,7 @@ export function PostCreator() {
                 <CardContent className="p-2">
                   {item.type === "image" ? (
                     <img
-                      src={item.url || "/placeholder.svg"}
+                      src={item.url}
                       alt="Preview"
                       className="aspect-square h-full w-full rounded-md object-cover"
                     />

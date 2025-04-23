@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast"
 import type { Post } from "@/types/post"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2 } from "lucide-react"
+import { getPosts, deletePost } from "@/lib/api/post"
 
 // Mock data for posts
 const mockPosts: Post[] = [
@@ -144,33 +145,54 @@ export function PostFeed({ userOnly = false, username }: PostFeedProps) {
   const [activeTab, setActiveTab] = useState("recent")
   const { toast } = useToast()
 
-  useEffect(() => {
-    // In a real app, this would fetch posts from an API
-    setTimeout(() => {
-      let filteredPosts = [...mockPosts]
+  const fetchPosts = async () => {
+    try {
+      const response = await getPosts(page)
+      const newPosts = response.posts
 
       if (userOnly && username) {
-        filteredPosts = filteredPosts.filter((post) => post.author.username === username)
-      }
-
-      if (activeTab === "popular") {
-        filteredPosts.sort((a, b) => b.likes - a.likes)
+        const filteredPosts = newPosts.filter((post) => post.author.username === username)
+        setPosts(filteredPosts)
       } else {
-        filteredPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        if (activeTab === "popular") {
+          newPosts.sort((a, b) => b.likes - a.likes)
+        } else {
+          newPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        }
+        setPosts(newPosts)
       }
 
-      setPosts(filteredPosts)
+      setHasMore(response.pagination.page < response.pagination.pages)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch posts. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
       setLoading(false)
-      setHasMore(false) // For mock data, we don't have more pages
-    }, 1000)
-  }, [userOnly, username, activeTab])
+    }
+  }
 
-  const handleDeletePost = (id: string) => {
-    setPosts(posts.filter((post) => post.id !== id))
-    toast({
-      title: "Post deleted",
-      description: "Your post has been successfully deleted.",
-    })
+  useEffect(() => {
+    fetchPosts()
+  }, [page, userOnly, username, activeTab])
+
+  const handleDeletePost = async (id: string) => {
+    try {
+      await deletePost(id)
+      setPosts(posts.filter((post) => post.id !== id))
+      toast({
+        title: "Post deleted",
+        description: "Your post has been successfully deleted.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete post. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const loadMore = () => {

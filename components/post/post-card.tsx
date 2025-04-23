@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -11,6 +11,8 @@ import { useAuth } from "@/contexts/auth-context"
 import { Heart, MessageSquare, Share2, Send, MoreHorizontal } from "lucide-react"
 import type { Post, PostComment } from "@/types/post"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { getMediaUrl, deletePost } from "@/lib/api/post"
+import { Avatar } from "@/components/shared/avatar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -91,9 +93,22 @@ export function PostCard({ post, onDelete }: PostCardProps) {
     }, 1000)
   }
 
-  const handleDeletePost = () => {
-    if (onDelete) {
-      onDelete(post.id)
+  const handleDeletePost = async () => {
+    try {
+      await deletePost(post.id)
+      if (onDelete) {
+        onDelete(post.id)
+      }
+      toast({
+        title: "Success",
+        description: "Post deleted successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete post. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -109,10 +124,11 @@ export function PostCard({ post, onDelete }: PostCardProps) {
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Avatar>
-              <AvatarImage src={post.author.avatar} alt={post.author.name} />
-              <AvatarFallback>{post.author.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <Avatar
+              src={post.author.avatar}
+              alt={post.author.name}
+              fallback={post.author.name.substring(0, 2)}
+            />
             <div>
               <Link href={`/profile/${post.author.username}`} className="font-medium hover:underline">
                 {post.author.name}
@@ -189,9 +205,9 @@ export function PostCard({ post, onDelete }: PostCardProps) {
               {post.media.map((item) => (
                 <div key={item.id} className="overflow-hidden rounded-lg">
                   {item.type === "image" ? (
-                    <img src={item.url || "/placeholder.svg"} alt="" className="h-auto w-full object-cover" />
+                    <img src={getMediaUrl(item.url)} alt="" className="h-auto w-full object-cover" />
                   ) : (
-                    <video src={item.url} controls className="h-auto w-full rounded-lg" />
+                    <video src={getMediaUrl(item.url)} controls className="h-auto w-full rounded-lg" />
                   )}
                 </div>
               ))}
@@ -221,10 +237,12 @@ export function PostCard({ post, onDelete }: PostCardProps) {
         {showComments && (
           <div className="border-t p-4 space-y-4">
             <div className="flex space-x-4">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.avatar || "/placeholder.svg?height=32&width=32"} alt={user?.name || "User"} />
-                <AvatarFallback>{user?.name ? user.name.substring(0, 2).toUpperCase() : "U"}</AvatarFallback>
-              </Avatar>
+              <Avatar
+                src={user?.avatar}
+                alt={user?.name || "User"}
+                className="h-8 w-8"
+                fallback={user?.name?.substring(0, 2)}
+              />
               <div className="flex-1 space-y-2">
                 <Textarea
                   placeholder="Write a comment..."
@@ -249,10 +267,12 @@ export function PostCard({ post, onDelete }: PostCardProps) {
             <div className="space-y-4">
               {comments.map((comment) => (
                 <div key={comment.id} className="flex space-x-4">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
-                    <AvatarFallback>{comment.author.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
+                  <Avatar
+                    src={comment.author.avatar}
+                    alt={comment.author.name}
+                    className="h-8 w-8"
+                    fallback={comment.author.name.substring(0, 2)}
+                  />
                   <div className="flex-1">
                     <div className="rounded-lg bg-muted p-3">
                       <div className="flex items-center justify-between">
