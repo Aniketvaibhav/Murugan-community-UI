@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/contexts/auth-context"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MoreVertical, Edit, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,122 +22,37 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import Image from "next/image"
+import { getBlogs } from "@/lib/api/blog"
+import type { Blog } from "@/types/blog"
 
-// Mock data for blogs
-const initialBlogs = [
-  {
-    id: 1,
-    title: "My Pilgrimage to Palani Temple",
-    excerpt: "Sharing my spiritual journey to one of the six abodes of Lord Murugan...",
-    image: "/placeholder.svg?height=200&width=400",
-    author: {
-      id: "1",
-      name: "Ramesh Kumar",
-      avatar: "/placeholder.svg?height=40&width=40",
-      initials: "RK",
-    },
-    date: "May 15, 2023",
-    readTime: "5 min read",
-    category: "Pilgrimage",
-    likes: 42,
-    comments: 12,
-  },
-  {
-    id: 2,
-    title: "The Significance of Vel in Murugan Worship",
-    excerpt: "Exploring the symbolism and spiritual meaning behind Lord Murugan's spear...",
-    image: "/placeholder.svg?height=200&width=400",
-    author: {
-      id: "2",
-      name: "Priya Sundaram",
-      avatar: "/placeholder.svg?height=40&width=40",
-      initials: "PS",
-    },
-    date: "April 28, 2023",
-    readTime: "7 min read",
-    category: "Symbolism",
-    likes: 38,
-    comments: 8,
-  },
-  {
-    id: 3,
-    title: "Celebrating Thaipusam: A Personal Account",
-    excerpt: "My experience participating in the Thaipusam festival for the first time...",
-    image: "/placeholder.svg?height=200&width=400",
-    author: {
-      id: "3",
-      name: "Anand Venkat",
-      avatar: "/placeholder.svg?height=40&width=40",
-      initials: "AV",
-    },
-    date: "February 10, 2023",
-    readTime: "6 min read",
-    category: "Festivals",
-    likes: 56,
-    comments: 15,
-  },
-  {
-    id: 4,
-    title: "Understanding the Six Faces of Lord Murugan",
-    excerpt: "Delving into the spiritual significance of Shanmukha, the six-faced deity...",
-    image: "/placeholder.svg?height=200&width=400",
-    author: {
-      id: "4",
-      name: "Lakshmi Narayanan",
-      avatar: "/placeholder.svg?height=40&width=40",
-      initials: "LN",
-    },
-    date: "March 5, 2023",
-    readTime: "8 min read",
-    category: "Mythology",
-    likes: 62,
-    comments: 20,
-  },
-  {
-    id: 5,
-    title: "The Sacred Groves of Murugan Temples",
-    excerpt: "Exploring the ecological and spiritual significance of sacred groves in Murugan temples...",
-    image: "/placeholder.svg?height=200&width=400",
-    author: {
-      id: "5",
-      name: "Karthik Raja",
-      avatar: "/placeholder.svg?height=40&width=40",
-      initials: "KR",
-    },
-    date: "June 12, 2023",
-    readTime: "6 min read",
-    category: "Temples",
-    likes: 35,
-    comments: 9,
-  },
-  {
-    id: 6,
-    title: "Murugan in Tamil Literature: A Journey Through Sangam Poetry",
-    excerpt: "Analyzing the references to Lord Murugan in ancient Tamil Sangam literature...",
-    image: "/placeholder.svg?height=200&width=400",
-    author: {
-      id: "6",
-      name: "Meenakshi Sundaram",
-      avatar: "/placeholder.svg?height=40&width=40",
-      initials: "MS",
-    },
-    date: "July 8, 2023",
-    readTime: "10 min read",
-    category: "Literature",
-    likes: 48,
-    comments: 14,
-  },
-]
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
 
 // Categories for filtering
 const categories = ["All", "Pilgrimage", "Symbolism", "Festivals", "Mythology", "Temples", "Literature"]
 
 export default function BlogsPage() {
   const { user, isAuthenticated } = useAuth()
-  const [blogs, setBlogs] = useState(initialBlogs)
+  const [blogs, setBlogs] = useState<Blog[]>([])
+  const [loading, setLoading] = useState(true)
   const [showMyBlogs, setShowMyBlogs] = useState(false)
 
-  const handleDeleteBlog = (id: number) => {
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      setLoading(true)
+      try {
+        const response = await getBlogs()
+        setBlogs(response.data.blogs)
+      } catch (error) {
+        // Optionally handle error
+        setBlogs([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchBlogs()
+  }, [])
+
+  const handleDeleteBlog = (id: string) => {
     // In a real app, this would call an API to delete the blog
     const updatedBlogs = blogs.filter((blog) => blog.id !== id)
     setBlogs(updatedBlogs)
@@ -188,12 +103,13 @@ export default function BlogsPage() {
                   <Card key={blog.id} className="overflow-hidden transition-all hover:shadow-md">
                     <Link href={`/blogs/${blog.id}`}>
                       <CardContent className="p-0 relative">
-                        <div className="relative h-48 w-full overflow-hidden">
+                        <div className="relative h-48 w-full overflow-hidden">          
                           <Image
-                            src={blog.image || "/placeholder.svg"}
+                            src={blog.media && blog.media[0]?.url ? `${API_BASE_URL}${blog.media[0].url}` : "/placeholder.svg"}
                             alt={blog.title}
                             fill
                             className="object-cover transition-transform duration-300 hover:scale-105"
+                            priority={blog.media && blog.media[0]?.url === '/placeholder.svg'}
                           />
                         </div>
                         <div className="p-6">
@@ -271,20 +187,16 @@ export default function BlogsPage() {
                       <div className="flex w-full items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={blog.author.avatar} alt={blog.author.name} />
-                            <AvatarFallback>{blog.author.initials}</AvatarFallback>
+                            <AvatarImage src={blog.author.avatar?.startsWith('/uploads') ? `${API_BASE_URL}${blog.author.avatar}` : blog.author.avatar || '/placeholder.svg'} alt={blog.author.name} />
                           </Avatar>
                           <div className="space-y-1">
                             <p className="text-sm font-medium leading-none">{blog.author.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {blog.date} · {blog.readTime}
-                            </p>
                           </div>
                         </div>
                         <div className="flex items-center text-xs text-muted-foreground">
                           <span>{blog.likes} likes</span>
                           <span className="mx-2">•</span>
-                          <span>{blog.comments} comments</span>
+                          <span>{blog.comments.length} comments</span>
                         </div>
                       </div>
                     </CardFooter>
@@ -304,10 +216,11 @@ export default function BlogsPage() {
                         <CardContent className="p-0 relative">
                           <div className="relative h-48 w-full overflow-hidden">
                             <Image
-                              src={blog.image || "/placeholder.svg"}
+                              src={blog.media && blog.media[0]?.url ? `${API_BASE_URL}${blog.media[0].url}` : "/placeholder.svg"}
                               alt={blog.title}
                               fill
                               className="object-cover transition-transform duration-300 hover:scale-105"
+                              priority={blog.media && blog.media[0]?.url === '/placeholder.svg'}
                             />
                           </div>
                           <div className="p-6">
@@ -385,20 +298,16 @@ export default function BlogsPage() {
                         <div className="flex w-full items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={blog.author.avatar} alt={blog.author.name} />
-                              <AvatarFallback>{blog.author.initials}</AvatarFallback>
+                              <AvatarImage src={blog.author.avatar?.startsWith('/uploads') ? `${API_BASE_URL}${blog.author.avatar}` : blog.author.avatar || '/placeholder.svg'} alt={blog.author.name} />
                             </Avatar>
                             <div className="space-y-1">
                               <p className="text-sm font-medium leading-none">{blog.author.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {blog.date} · {blog.readTime}
-                              </p>
                             </div>
                           </div>
                           <div className="flex items-center text-xs text-muted-foreground">
                             <span>{blog.likes} likes</span>
                             <span className="mx-2">•</span>
-                            <span>{blog.comments} comments</span>
+                            <span>{blog.comments.length} comments</span>
                           </div>
                         </div>
                       </CardFooter>

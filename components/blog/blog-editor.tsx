@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +11,19 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { Icons } from "@/components/icons"
 import { Image, Video, X } from "lucide-react"
+import { createBlog } from "@/lib/api/blog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+const CATEGORIES = [
+  "Pilgrimage",
+  "Symbolism",
+  "Mythology",
+  "Festivals",
+  "Temples",
+  "Literature"
+] as const
+
+type Category = typeof CATEGORIES[number]
 
 type MediaItem = {
   id: string
@@ -25,9 +36,10 @@ type MediaItem = {
 export function BlogEditor() {
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
+  const [excerpt, setExcerpt] = useState("")
+  const [category, setCategory] = useState<Category | "">("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
-  const [category, setCategory] = useState("")
   const imageInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
@@ -82,7 +94,7 @@ export function BlogEditor() {
       return
     }
 
-    if (!title.trim() || !content.trim() || !category.trim()) {
+    if (!title.trim() || !content.trim() || !category.trim() || !excerpt.trim()) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields",
@@ -94,24 +106,41 @@ export function BlogEditor() {
     setIsSubmitting(true)
 
     try {
-      // In a real app, this would upload media files to a storage service
-      // and then save the blog post with media URLs to a database
+      const formData = new FormData()
+      formData.append("title", title)
+      formData.append("content", content)
+      formData.append("category", category)
+      formData.append("excerpt", excerpt)
 
-      // Mock successful blog creation
-      setTimeout(() => {
-        toast({
-          title: "Blog published!",
-          description: "Your blog has been successfully published.",
-        })
-        setIsSubmitting(false)
-        router.push("/blogs")
-      }, 1500)
-    } catch (error) {
+      mediaItems.forEach((item, index) => {
+        if (item.file) {
+          formData.append("media", item.file)
+        }
+      })
+
+      console.log("Submitting blog with data:", {
+        title,
+        category,
+        excerpt,
+        mediaCount: mediaItems.length
+      })
+
+      const response = await createBlog(formData)
+      console.log("Blog created successfully:", response)
+
+      toast({
+        title: "Blog published!",
+        description: "Your blog has been successfully published.",
+      })
+      router.push("/blogs")
+    } catch (error: any) {
+      console.error("Error creating blog:", error)
       toast({
         title: "Error",
-        description: "Failed to publish blog. Please try again.",
+        description: error.response?.data?.message || "Failed to publish blog. Please try again.",
         variant: "destructive",
       })
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -131,11 +160,28 @@ export function BlogEditor() {
 
       <div className="space-y-2">
         <Label htmlFor="category">Category</Label>
-        <Input
-          id="category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          placeholder="E.g., Pilgrimage, Temples, Festivals, etc."
+        <Select value={category} onValueChange={(value: Category) => setCategory(value)} required>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a category" />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map((cat) => (
+              <SelectItem key={cat} value={cat}>
+                {cat}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="excerpt">Excerpt</Label>
+        <Textarea
+          id="excerpt"
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
+          placeholder="Write a brief summary of your blog..."
+          className="min-h-[100px]"
           required
         />
       </div>

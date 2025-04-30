@@ -58,6 +58,8 @@ type BlogDetailProps = {
   isLiked?: boolean
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
+
 export function BlogDetail({
   id,
   title,
@@ -159,7 +161,14 @@ export function BlogDetail({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Avatar>
-              <AvatarImage src={author.avatar} alt={author.name} />
+              <AvatarImage
+                src={
+                  author.avatar?.startsWith('/uploads')
+                    ? `${API_BASE_URL}${author.avatar}`
+                    : author.avatar || '/placeholder.svg'
+                }
+                alt={author.name}
+              />
               <AvatarFallback>{author.initials}</AvatarFallback>
             </Avatar>
             <div>
@@ -211,7 +220,16 @@ export function BlogDetail({
               <div key={item.id} className="overflow-hidden rounded-lg">
                 {item.type === "image" ? (
                   <div className="relative h-[400px] w-full">
-                    <Image src={item.url || "/placeholder.svg"} alt="" fill className="object-cover" />
+                    <Image
+                      src={
+                        item.url?.startsWith('/uploads')
+                          ? `${API_BASE_URL}${item.url}`
+                          : item.url || "/placeholder.svg"
+                      }
+                      alt={title}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
                 ) : (
                   <video src={item.url} controls className="h-auto w-full rounded-lg" />
@@ -249,7 +267,14 @@ export function BlogDetail({
 
         <div className="flex space-x-4">
           <Avatar>
-            <AvatarImage src={user?.avatar || "/placeholder.svg?height=40&width=40"} alt={user?.name || "User"} />
+            <AvatarImage
+              src={
+                user?.avatar?.startsWith('/uploads')
+                  ? `${API_BASE_URL}${user.avatar}`
+                  : user?.avatar || '/placeholder.svg?height=40&width=40'
+              }
+              alt={user?.name || "User"}
+            />
             <AvatarFallback>{user?.name ? user.name.substring(0, 2).toUpperCase() : "U"}</AvatarFallback>
           </Avatar>
           <div className="flex-1 space-y-2">
@@ -280,7 +305,14 @@ export function BlogDetail({
                 <CardContent className="p-4">
                   <div className="flex space-x-4">
                     <Avatar>
-                      <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
+                      <AvatarImage
+                        src={
+                          comment.author.avatar?.startsWith('/uploads')
+                            ? `${API_BASE_URL}${comment.author.avatar}`
+                            : comment.author.avatar || '/placeholder.svg'
+                        }
+                        alt={comment.author.name}
+                      />
                       <AvatarFallback>{comment.author.initials}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
