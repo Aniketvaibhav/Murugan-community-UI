@@ -15,9 +15,10 @@ import { Badge } from "@/components/ui/badge"
 import { PostFeed } from "@/components/post/post-feed"
 import { FollowersList } from "@/components/profile/followers-list"
 import { useAuth } from "@/contexts/auth-context"
+import { getApiUrl } from "@/config"
 
 // API configuration
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API_URL = `${getApiUrl()}/api`
 const API_BASE_URL = API_URL.replace('/api', '') // Remove /api for media URLs
 
 // Type definitions for data structures

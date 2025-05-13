@@ -17,9 +17,10 @@ import { Icons } from "@/components/icons"
 import { Camera, MapPin, Calendar, X } from "lucide-react"
 import axios from 'axios'
 import { format } from "date-fns"
+import { getApiUrl } from "@/config"
 
 // API configuration
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API_URL = `${getApiUrl()}/api`
 const BACKEND_URL = API_URL.replace('/api', '') // Remove /api to get base URL
 
 interface UserProfile {

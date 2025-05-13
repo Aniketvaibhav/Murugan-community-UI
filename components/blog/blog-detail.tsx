@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { getApiUrl } from "@/config"
 
 type BlogMedia = {
   id: string
@@ -58,7 +59,7 @@ type BlogDetailProps = {
   isLiked?: boolean
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
+const API_BASE_URL = getApiUrl()
 
 export function BlogDetail({
   id,

@@ -1,6 +1,7 @@
 import { Post, PostMedia } from "@/types/post"
+import { getApiUrl } from "@/config"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+const API_BASE_URL = getApiUrl()
 const API_URL = `${API_BASE_URL}/api`
 
 // Helper function to get auth headers

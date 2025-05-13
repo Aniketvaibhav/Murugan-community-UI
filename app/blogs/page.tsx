@@ -24,8 +24,9 @@ import {
 import Image from "next/image"
 import { getBlogs } from "@/lib/api/blog"
 import type { Blog } from "@/types/blog"
+import { getApiUrl } from "@/config"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
+const API_BASE_URL = getApiUrl()
 
 // Categories for filtering
 const categories = ["All", "Pilgrimage", "Symbolism", "Festivals", "Mythology", "Temples", "Literature"]
@@ -103,7 +104,7 @@ export default function BlogsPage() {
                   <Card key={blog.id} className="overflow-hidden transition-all hover:shadow-md">
                     <Link href={`/blogs/${blog.id}`}>
                       <CardContent className="p-0 relative">
-                        <div className="relative h-48 w-full overflow-hidden">          
+                        <div className="relative h-48 w-full overflow-hidden">
                           <Image
                             src={blog.media && blog.media[0]?.url ? `${API_BASE_URL}${blog.media[0].url}` : "/placeholder.svg"}
                             alt={blog.title}

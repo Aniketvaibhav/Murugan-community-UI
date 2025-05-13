@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Bell, Menu, Search, PlusSquare, LogOut, UserIcon } from "lucide-react"
+import { Bell, Menu, Search, PlusSquare, LogOut, UserIcon, MessageCircle } from "lucide-react"
 import { LanguageSelector } from "@/components/language-selector"
 import { useAuth } from "@/contexts/auth-context"
 import {
@@ -26,16 +26,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import FeedbackModal from "@/components/FeedbackModal"
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isFeedbackOpen, setFeedbackOpen] = useState(false)
   const pathname = usePathname()
   const { isAuthenticated, user, logout } = useAuth()
 
   const navItems = [
     { name: "Home", href: "/" },
     { name: "Blogs", href: "/blogs" },
-    { name: "Voice Rooms", href: "/voice-rooms" },
+    // { name: "Voice Rooms", href: "/voice-rooms" }, // Temporarily hidden during development
     { name: "Learn", href: "/learn" },
   ]
 
@@ -90,7 +92,7 @@ export function Navbar() {
                       className={cn(
                         navigationMenuTriggerStyle(),
                         "hover:bg-peacock-400 hover:text-white hover:shadow-md hover:bg-gradient-to-b hover:from-peacock-300 hover:to-peacock-500",
-                        pathname === item.href ? "bg-peacock-200 text-peacock-900" : "",
+                        pathname === item.href ? "bg-peacock-200 text-peacock-900 data-[active]:bg-peacock-200" : "",
                       )}
                     >
                       {item.name}
@@ -98,6 +100,17 @@ export function Navbar() {
                   </Link>
                 </NavigationMenuItem>
               ))}
+              <NavigationMenuItem>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ml-2 text-orange-600 border-orange-400 hover:bg-orange-50"
+                  onClick={() => setFeedbackOpen(true)}
+                  aria-label="Send Feedback"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                </Button>
+              </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
         </div>
@@ -199,6 +212,7 @@ export function Navbar() {
           )}
         </div>
       </div>
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </header>
   )
 }

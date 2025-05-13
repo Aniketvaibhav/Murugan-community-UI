@@ -42,7 +42,10 @@ export default function Home() {
                   <Link href="/voice-rooms">View All</Link>
                 </Button>
               </div>
-              <ActiveVoiceRooms />
+              {/* <ActiveVoiceRooms /> (Temporarily hidden during development)*/}
+              <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg">
+                <p className="text-lg text-muted-foreground">We're Coming Soon</p>
+              </div>
             </div>
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -51,7 +54,10 @@ export default function Home() {
                   <Link href="/events">View All</Link>
                 </Button>
               </div>
-              <UpcomingEvents />
+              {/* <UpcomingEvents /> (Temporarily hidden during development)*/}
+              <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg">
+                <p className="text-lg text-muted-foreground">We're Coming Soon</p>
+              </div>
             </div>
           </div>
         </div>
@@ -210,7 +216,9 @@ export default function Home() {
                   <Link href="/voice-rooms">View All</Link>
                 </Button>
               </div>
-              <ActiveVoiceRooms />
+              <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg">
+                <p className="text-lg text-muted-foreground">We are coming soon</p>
+              </div>
             </div>
             <div>
               <div className="flex items-center justify-between">
@@ -219,7 +227,9 @@ export default function Home() {
                   <Link href="/events">View All</Link>
                 </Button>
               </div>
-              <UpcomingEvents />
+              <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg">
+                <p className="text-lg text-muted-foreground">We are coming soon</p>
+              </div>
             </div>
           </div>
         </div>

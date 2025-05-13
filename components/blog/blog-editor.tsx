@@ -128,11 +128,11 @@ export function BlogEditor() {
       const response = await createBlog(formData)
       console.log("Blog created successfully:", response)
 
-      toast({
-        title: "Blog published!",
-        description: "Your blog has been successfully published.",
-      })
-      router.push("/blogs")
+        toast({
+          title: "Blog published!",
+          description: "Your blog has been successfully published.",
+        })
+        router.push("/blogs")
     } catch (error: any) {
       console.error("Error creating blog:", error)
       toast({

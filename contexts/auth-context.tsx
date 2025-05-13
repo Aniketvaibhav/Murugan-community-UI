@@ -2,8 +2,9 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import axios from "axios"
+import { getApiUrl } from "@/config"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API_URL = `${getApiUrl()}/api`
 const BACKEND_URL = API_URL.replace('/api', '') // Remove /api to get base URL
 
 interface User {
