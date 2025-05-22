@@ -131,32 +131,35 @@ export async function deletePost(id: string): Promise<void> {
   }
 }
 
-export async function likePost(id: string): Promise<void> {
+// Toggle like/unlike a post
+export async function toggleLikePost(id: string, username: string): Promise<{ likes: string[]; likesCount: number; liked: boolean }> {
   const response = await fetch(`${API_URL}/posts/${id}/like`, {
     method: "POST",
-    credentials: "include",
     headers: {
+      "Content-Type": "application/json",
       ...getAuthHeaders(),
     },
-  })
-
+    body: JSON.stringify({ username }),
+    credentials: "include",
+  });
   if (!response.ok) {
-    throw new Error("Failed to like post")
+    throw new Error("Failed to like/unlike post");
   }
+  return response.json();
 }
 
-export async function unlikePost(id: string): Promise<void> {
-  const response = await fetch(`${API_URL}/posts/${id}/like`, {
-    method: "DELETE",
+// Get all likes for a post
+export async function getPostLikes(id: string): Promise<{ likes: string[]; likesCount: number }> {
+  const response = await fetch(`${API_URL}/posts/${id}/likes`, {
     credentials: "include",
     headers: {
       ...getAuthHeaders(),
     },
-  })
-
+  });
   if (!response.ok) {
-    throw new Error("Failed to unlike post")
+    throw new Error("Failed to fetch post likes");
   }
+  return response.json();
 }
 
 export async function addComment(id: string, content: string): Promise<void> {

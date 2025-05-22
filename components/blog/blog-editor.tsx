@@ -175,12 +175,22 @@ export function BlogEditor() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="excerpt">Excerpt</Label>
+        <div className="flex justify-between items-center">
+          <Label htmlFor="excerpt">Excerpt</Label>
+          <span className="text-sm text-muted-foreground">
+            {excerpt.split(/\s+/).filter(Boolean).length}/30 words
+          </span>
+        </div>
         <Textarea
           id="excerpt"
           value={excerpt}
-          onChange={(e) => setExcerpt(e.target.value)}
-          placeholder="Write a brief summary of your blog..."
+          onChange={(e) => {
+            const words = e.target.value.split(/\s+/).filter(Boolean);
+            if (words.length <= 30) {
+              setExcerpt(e.target.value);
+            }
+          }}
+          placeholder="Write a brief summary of your blog (max 30 words)..."
           className="min-h-[100px]"
           required
         />

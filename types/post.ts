@@ -33,7 +33,8 @@ export interface Post {
     username: string
   }
   createdAt: string
-  likes: number
+  likes: string[]
+  likesCount: number
   comments: PostComment[]
   tags: PostTag[]
   isLiked?: boolean

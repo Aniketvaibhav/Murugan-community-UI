@@ -16,6 +16,9 @@ import { PostFeed } from "@/components/post/post-feed"
 import { FollowersList } from "@/components/profile/followers-list"
 import { useAuth } from "@/contexts/auth-context"
 import { getApiUrl } from "@/config"
+import { BlogCard } from "@/components/blog/blog-card"
+import { BlogFeed } from "@/components/blog/blog-feed"
+import type { Blog } from "@/types/blog"
 
 // API configuration
 const API_URL = `${getApiUrl()}/api`
@@ -34,15 +37,6 @@ type UserData = {
   followers: number
   following: number
   posts: number
-}
-
-type Blog = {
-  id: string
-  title: string
-  excerpt: string
-  date: string
-  likes: number
-  comments: number
 }
 
 type VoiceRoom = {
@@ -109,10 +103,28 @@ export default function ProfilePage() {
         // Fetch additional user content
         await Promise.all([
           // Fetch blogs
-          axios.get(`${API_URL}/blogs/user/${profileData._id}`, {
+          axios.get(`${API_URL}/blogs/user/${profileData.username}`, {
             headers: { Authorization: `Bearer ${token}` }
           })
-            .then(res => setUserBlogs(res.data.data.blogs))
+            .then(res => setUserBlogs(
+              res.data.data.blogs.map((blog: any) => ({
+                ...blog,
+                media: blog.media?.map((m: any) => ({
+                  ...m,
+                  url: m.url?.startsWith('http') ? m.url : `${API_BASE_URL}${m.url}`,
+                })) || [],
+                author: {
+                  ...blog.author,
+                  avatar: blog.author.avatar?.startsWith('http')
+                    ? blog.author.avatar
+                    : `${API_BASE_URL}${blog.author.avatar}`,
+                },
+                content: blog.content || "",
+                image: blog.image || "",
+                createdAt: blog.createdAt || "",
+                updatedAt: blog.updatedAt || "",
+              }))
+            ))
             .catch(() => setUserBlogs([])),
           
           // Fetch voice rooms
@@ -282,24 +294,12 @@ export default function ProfilePage() {
               </TabsContent>
 
               {/* Blogs Tab */}
-              <TabsContent value="blogs" className="mt-0 space-y-4">
-                {userBlogs.map((blog) => (
-                  <Card key={blog.id}>
-                    <CardContent className="p-6">
-                      <Link href={`/blogs/${blog.id}`}>
-                        <h3 className="text-xl font-semibold hover:text-primary">{blog.title}</h3>
-                      </Link>
-                      <p className="mt-2 text-muted-foreground">{blog.excerpt}</p>
-                      <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                        <span>{format(new Date(blog.date), 'PP')}</span>
-                        <div className="flex items-center space-x-4">
-                          <span>{blog.likes} likes</span>
-                          <span>{blog.comments} comments</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+              <TabsContent value="blogs" className="mt-0">
+                <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 justify-center">
+                  {userBlogs.map((blog) => (
+                    <BlogCard key={blog.id} blog={blog} />
+                  ))}
+                </div>
               </TabsContent>
 
               {/* Voice Rooms Tab */}

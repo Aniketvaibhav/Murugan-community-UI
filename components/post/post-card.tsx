@@ -8,10 +8,10 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
-import { Heart, MessageSquare, Share2, Send, MoreHorizontal } from "lucide-react"
+import { Heart, MessageSquare, Share2, Send, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Post, PostComment } from "@/types/post"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { getMediaUrl, deletePost } from "@/lib/api/post"
+import { getMediaUrl, deletePost, toggleLikePost, getPostLikes } from "@/lib/api/post"
 import { Avatar } from "@/components/shared/avatar"
 import {
   AlertDialog,
@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { LikesModal } from "@/components/ui/likes-modal"
 
 interface PostCardProps {
   post: Post
@@ -32,6 +33,7 @@ interface PostCardProps {
 
 export function PostCard({ post, onDelete }: PostCardProps) {
   const [likes, setLikes] = useState(post.likes)
+  const [likesCount, setLikesCount] = useState(post.likesCount || post.likes.length)
   const [isLiked, setIsLiked] = useState(post.isLiked || false)
   const [comments, setComments] = useState(post.comments)
   const [newComment, setNewComment] = useState("")
@@ -39,23 +41,46 @@ export function PostCard({ post, onDelete }: PostCardProps) {
   const [showComments, setShowComments] = useState(false)
   const { toast } = useToast()
   const { user, isAuthenticated } = useAuth()
+  const [mediaIndex, setMediaIndex] = useState(0)
+  const mediaCount = post.media.length
+  const [showLikesModal, setShowLikesModal] = useState(false)
 
-  const handleLike = () => {
-    if (!isAuthenticated) {
+  const handleLike = async () => {
+    if (!isAuthenticated || !user?.username) {
       toast({
         title: "Authentication required",
         description: "Please log in to like this post",
       })
       return
     }
-
-    if (isLiked) {
-      setLikes(likes - 1)
-      setIsLiked(false)
-    } else {
-      setLikes(likes + 1)
-      setIsLiked(true)
+    try {
+      // Optimistic update
+      setIsLiked((prev) => !prev)
+      setLikesCount((prev) => prev + (isLiked ? -1 : 1))
+      setLikes((prev) =>
+        isLiked ? prev.filter((u) => u !== user.username) : [...prev, user.username]
+      )
+      const result = await toggleLikePost(post.id, user.username)
+      setLikes(result.likes)
+      setLikesCount(result.likesCount)
+      setIsLiked(result.liked)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to like/unlike post.",
+        variant: "destructive",
+      })
     }
+  }
+
+  const handleShowLikes = async () => {
+    try {
+      setShowLikesModal(true)
+      // Optionally, fetch latest likes
+      const result = await getPostLikes(post.id)
+      setLikes(result.likes)
+      setLikesCount(result.likesCount)
+    } catch {}
   }
 
   const handleCommentSubmit = () => {
@@ -119,9 +144,19 @@ export function PostCard({ post, onDelete }: PostCardProps) {
     day: "numeric",
   })
 
+  const goToPrev = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setMediaIndex((prev) => (prev === 0 ? mediaCount - 1 : prev - 1))
+  }
+
+  const goToNext = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setMediaIndex((prev) => (prev === mediaCount - 1 ? 0 : prev + 1))
+  }
+
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-6">
+    <Card className="overflow-hidden max-w-[400px] mx-auto my-4 p-3 shadow-lg">
+      <CardContent className="p-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Avatar
@@ -199,19 +234,55 @@ export function PostCard({ post, onDelete }: PostCardProps) {
           </div>
         )}
 
-        {post.media.length > 0 && (
-          <div className="mt-4 space-y-4">
-            <div className={`grid gap-2 ${post.media.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-              {post.media.map((item) => (
-                <div key={item.id} className="overflow-hidden rounded-lg">
-                  {item.type === "image" ? (
-                    <img src={getMediaUrl(item.url)} alt="" className="h-auto w-full object-cover" />
+        {/* Media Carousel */}
+        {mediaCount > 0 && (
+          <div className="relative w-full max-w-[360px] mx-auto aspect-[4/5] overflow-hidden rounded-[12px] flex items-center justify-center mt-4">
+            <div className="w-full h-full transition-transform duration-300 ease-in-out flex items-center justify-center">
+              {post.media[mediaIndex].type === "image" ? (
+                <img
+                  src={getMediaUrl(post.media[mediaIndex].url)}
+                  alt=""
+                  className="object-cover w-full h-full"
+                />
                   ) : (
-                    <video src={getMediaUrl(item.url)} controls className="h-auto w-full rounded-lg" />
+                <video
+                  src={getMediaUrl(post.media[mediaIndex].url)}
+                  controls
+                  className="object-cover w-full h-full"
+                />
                   )}
                 </div>
+            {/* Left Arrow */}
+            {mediaCount > 1 && (
+              <button
+                onClick={goToPrev}
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white rounded-full p-1 shadow"
+                aria-label="Previous media"
+              >
+                <ChevronLeft className="h-6 w-6 text-gray-700" />
+              </button>
+            )}
+            {/* Right Arrow */}
+            {mediaCount > 1 && (
+              <button
+                onClick={goToNext}
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white rounded-full p-1 shadow"
+                aria-label="Next media"
+              >
+                <ChevronRight className="h-6 w-6 text-gray-700" />
+              </button>
+            )}
+            {/* Indicator Dots */}
+            {mediaCount > 1 && (
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                {post.media.map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`h-2 w-2 rounded-full ${idx === mediaIndex ? "bg-orange-500" : "bg-gray-300"}`}
+                  />
               ))}
             </div>
+            )}
           </div>
         )}
       </CardContent>
@@ -219,10 +290,14 @@ export function PostCard({ post, onDelete }: PostCardProps) {
       <CardFooter className="flex flex-col border-t p-0">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className={`gap-1 ${isLiked ? "text-red-500" : ""}`} onClick={handleLike}>
-              <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />
-              <span>{likes}</span>
+            <Button variant="ghost" size="sm" className={`gap-1 ${isLiked ? "text-red-500" : ""}`} onClick={handleLike} aria-label="Like">
+              <Heart className={`h-5 w-5 transition-transform duration-200 ${isLiked ? "fill-current scale-125" : "scale-100"}`} />
             </Button>
+            <span className="cursor-pointer text-sm" onClick={handleShowLikes}>
+              {likes.length === 0 ? "Be the first to like this" :
+                likes.length === 1 ? `Liked by ${likes[0]}` :
+                `Liked by ${likes[0]} and ${likes.length - 1} other${likes.length > 2 ? 's' : ''}`}
+            </span>
             <Button variant="ghost" size="sm" className="gap-1" onClick={() => setShowComments(!showComments)}>
               <MessageSquare className="h-5 w-5" />
               <span>{comments.length}</span>
@@ -233,6 +308,9 @@ export function PostCard({ post, onDelete }: PostCardProps) {
             Share
           </Button>
         </div>
+
+        {/* Likes Modal */}
+        <LikesModal open={showLikesModal} onClose={() => setShowLikesModal(false)} likes={likes} />
 
         {showComments && (
           <div className="border-t p-4 space-y-4">

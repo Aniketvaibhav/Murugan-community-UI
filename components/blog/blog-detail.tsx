@@ -22,6 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { getApiUrl } from "@/config"
+import { deleteBlog } from "@/lib/api/blog"
 
 type BlogMedia = {
   id: string
@@ -140,18 +141,24 @@ export function BlogDetail({
     }, 1000)
   }
 
-  const handleDeleteBlog = () => {
+  const handleDeleteBlog = async () => {
     setIsDeleting(true)
-
-    // In a real app, this would call an API to delete the blog
-    setTimeout(() => {
+    try {
+      await deleteBlog(id)
       toast({
         title: "Blog deleted",
         description: "Your blog has been successfully deleted",
       })
-      setIsDeleting(false)
       router.push("/blogs")
-    }, 1500)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the blog. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const isAuthor = user?.id === author.id

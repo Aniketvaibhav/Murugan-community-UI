@@ -6,6 +6,9 @@ import { BlogDetail } from "@/components/blog/blog-detail"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getBlog } from "@/lib/api/blog"
 import type { Blog } from "@/types/blog"
+import { getApiUrl } from "@/config"
+
+const API_BASE_URL = getApiUrl()
 
 export default function BlogPage() {
   const params = useParams()
@@ -17,7 +20,24 @@ export default function BlogPage() {
       setIsLoading(true)
       try {
         const response = await getBlog(params.id as string)
-        setBlog(response.data.blog)
+        const blog = response.data.blog;
+
+        // Fix media URLs
+        const fixedBlog = {
+          ...blog,
+          media: blog.media?.map((m) => ({
+            ...m,
+            url: m.url?.startsWith('http') ? m.url : `${API_BASE_URL}${m.url}`,
+          })) || [],
+          author: {
+            ...blog.author,
+            avatar: blog.author.avatar?.startsWith('http')
+              ? blog.author.avatar
+              : `${API_BASE_URL}${blog.author.avatar}`,
+          },
+        };
+
+        setBlog(fixedBlog)
       } catch (error) {
         setBlog(null)
       } finally {

@@ -22,6 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { LikesModal } from "@/components/ui/likes-modal"
+import { toggleLikeBlog, getBlogLikes } from "@/lib/api/blog"
 
 interface BlogCardProps {
   blog: Blog
@@ -30,26 +32,50 @@ interface BlogCardProps {
 
 export function BlogCard({ blog, onDelete }: BlogCardProps) {
   const [likes, setLikes] = useState(blog.likes)
+  const [likesCount, setLikesCount] = useState(blog.likesCount || blog.likes.length)
   const [isLiked, setIsLiked] = useState(blog.isLiked || false)
+  const [showLikesModal, setShowLikesModal] = useState(false)
   const { toast } = useToast()
   const { user, isAuthenticated } = useAuth()
 
-  const handleLike = () => {
-    if (!isAuthenticated) {
+  console.log("user", user, "isAuthenticated", isAuthenticated);
+
+  const handleLike = async () => {
+    if (!isAuthenticated || !user?.id) {
       toast({
         title: "Authentication required",
         description: "Please log in to like this blog",
       })
       return
     }
-
-    if (isLiked) {
-      setLikes(likes - 1)
-      setIsLiked(false)
-    } else {
-      setLikes(likes + 1)
-      setIsLiked(true)
+    try {
+      // Optimistic update
+      setIsLiked((prev) => !prev)
+      setLikesCount((prev) => prev + (isLiked ? -1 : 1))
+      setLikes((prev) =>
+        isLiked ? prev.filter((u) => u !== user.id) : [...prev, user.id]
+      )
+      const result = await toggleLikeBlog(blog.id, user.id)
+      setLikes(result.likes)
+      setLikesCount(result.likesCount)
+      setIsLiked(result.liked)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to like/unlike blog.",
+        variant: "destructive",
+      })
     }
+  }
+
+  const handleShowLikes = async () => {
+    try {
+      setShowLikesModal(true)
+      // Optionally, fetch latest likes
+      const result = await getBlogLikes(blog.id)
+      setLikes(result.likes)
+      setLikesCount(result.likesCount)
+    } catch {}
   }
 
   const handleDeleteBlog = () => {
@@ -66,8 +92,8 @@ export function BlogCard({ blog, onDelete }: BlogCardProps) {
   })
 
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-0">
+    <Card className="overflow-hidden flex flex-col h-full">
+      <CardContent className="p-0 flex-1 flex flex-col">
         <Link href={`/blogs/${blog.id}`}>
           <div className="relative h-48 w-full overflow-hidden">
             <Image
@@ -78,7 +104,7 @@ export function BlogCard({ blog, onDelete }: BlogCardProps) {
             />
           </div>
         </Link>
-        <div className="p-6">
+        <div className="p-6 flex-1 flex flex-col">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Avatar>
@@ -102,45 +128,35 @@ export function BlogCard({ blog, onDelete }: BlogCardProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href={`/blogs/edit/${blog.id}`} className="cursor-pointer">
-                      Edit Blog
-                    </Link>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      // Placeholder for share functionality
+                      toast({
+                        title: "Share to...",
+                        description: "Sharing options coming soon!",
+                      })
+                    }}
+                  >
+                    Share to...
                   </DropdownMenuItem>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem
-                        onSelect={(e) => e.preventDefault()}
-                        className="text-destructive focus:text-destructive cursor-pointer"
-                      >
-                        Delete Blog
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete your blog.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDeleteBlog}
-                          className="bg-destructive text-destructive-foreground"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <DropdownMenuItem
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(`${window.location.origin}/blogs/${blog.id}`)
+                      toast({
+                        title: "Link copied!",
+                        description: "Blog link copied to clipboard.",
+                      })
+                    }}
+                  >
+                    Copy Link
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
           </div>
 
           <Link href={`/blogs/${blog.id}`}>
-            <h2 className="mt-4 text-xl font-semibold hover:underline">{blog.title}</h2>
+            <h2 className="mt-4 text-xl font-semibold hover:underline line-clamp-1">{blog.title}</h2>
             <p className="mt-2 text-muted-foreground line-clamp-2">{blog.excerpt}</p>
           </Link>
 
@@ -154,10 +170,14 @@ export function BlogCard({ blog, onDelete }: BlogCardProps) {
 
       <CardFooter className="flex items-center justify-between border-t p-4">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" className={`gap-1 ${isLiked ? "text-red-500" : ""}`} onClick={handleLike}>
-            <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />
-            <span>{likes}</span>
+          <Button variant="ghost" size="sm" className={`gap-1 ${isLiked ? "text-red-500" : ""}`} onClick={handleLike} aria-label="Like">
+            <Heart className={`h-5 w-5 transition-transform duration-200 ${isLiked ? "fill-current scale-125" : "scale-100"}`} />
           </Button>
+          <span className="cursor-pointer text-sm" onClick={handleShowLikes}>
+            {likes.length === 0 ? "Be the first to like this" :
+              likes.length === 1 ? `Liked by ${likes[0]}` :
+              `Liked by ${likes[0]} and ${likes.length - 1} other${likes.length > 2 ? 's' : ''}`}
+          </span>
           <Button variant="ghost" size="sm" className="gap-1">
             <MessageSquare className="h-5 w-5" />
             <span>{blog.comments.length}</span>
@@ -167,6 +187,8 @@ export function BlogCard({ blog, onDelete }: BlogCardProps) {
           <Share2 className="h-5 w-5" />
           Share
         </Button>
+        {/* Likes Modal */}
+        <LikesModal open={showLikesModal} onClose={() => setShowLikesModal(false)} likes={likes} />
       </CardFooter>
     </Card>
   )
