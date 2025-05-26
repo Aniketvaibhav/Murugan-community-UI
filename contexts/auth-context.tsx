@@ -53,27 +53,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
         
-        // Instead of /auth/me, we'll decode the JWT token to get basic user info
-        // and set the authenticated state. The full user data will be loaded
-        // when needed by specific components.
-        try {
-          // Basic validation of token format
-          const tokenParts = token.split('.')
-          if (tokenParts.length !== 3) {
-            throw new Error('Invalid token format')
-          }
-          
-          // Set authenticated state if token exists and has valid format
-          setIsAuthenticated(true)
-          setLoading(false)
-        } catch (err) {
-          console.error('Invalid token:', err)
-          localStorage.removeItem("token")
-          setUser(null)
-          setIsAuthenticated(false)
-          setLoading(false)
+        // Basic validation of token format
+        const tokenParts = token.split('.')
+        if (tokenParts.length !== 3) {
+          throw new Error('Invalid token format')
         }
+
+        // Fetch user data from backend
+        const response = await axios.get(`${API_URL}/users/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const userData = response.data.data.user
+
+        // Set user data with proper id mapping
+        setUser({
+          id: userData._id,
+          name: userData.name,
+          username: userData.username,
+          email: userData.email,
+          bio: userData.bio || "",
+          location: userData.location || "",
+          avatar: userData.avatar ? (userData.avatar.startsWith('http') ? userData.avatar : `${BACKEND_URL}${userData.avatar}`) : undefined,
+          coverImage: userData.coverImage ? (userData.coverImage.startsWith('http') ? userData.coverImage : `${BACKEND_URL}${userData.coverImage}`) : undefined,
+          createdAt: userData.createdAt,
+          followers: userData.followers || 0,
+          following: userData.following || 0,
+          posts: userData.posts || 0
+        })
+        setIsAuthenticated(true)
+        setLoading(false)
       } catch (err) {
+        console.error('Auth error:', err)
         localStorage.removeItem("token")
         setUser(null)
         setIsAuthenticated(false)
@@ -106,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         posts: userData.posts || 0
       })
       setIsAuthenticated(true)
+      window.location.reload()
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed')
       throw err

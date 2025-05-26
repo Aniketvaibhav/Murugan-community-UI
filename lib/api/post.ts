@@ -132,14 +132,14 @@ export async function deletePost(id: string): Promise<void> {
 }
 
 // Toggle like/unlike a post
-export async function toggleLikePost(id: string, username: string): Promise<{ likes: string[]; likesCount: number; liked: boolean }> {
+export async function toggleLikePost(id: string, userId: string): Promise<{ likes: string[]; likesCount: number; liked: boolean }> {
   const response = await fetch(`${API_URL}/posts/${id}/like`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...getAuthHeaders(),
     },
-    body: JSON.stringify({ username }),
+    body: JSON.stringify({ userId }),
     credentials: "include",
   });
   if (!response.ok) {

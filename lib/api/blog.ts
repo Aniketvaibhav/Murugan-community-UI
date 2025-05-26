@@ -46,4 +46,14 @@ export const unlikeBlog = async (id: string) => {
 export const getCategories = async () => {
   const response = await api.get<{ data: { categories: string[] } }>("/blogs/categories")
   return response.data
-} 
+}
+
+export const getBlogLikes = async (id: string): Promise<{ likes: string[]; likesCount: number }> => {
+  const response = await api.get(`/blogs/${id}/likes`);
+  return response.data;
+};
+
+export const toggleLikeBlog = async (id: string, userId: string): Promise<{ likes: string[]; likesCount: number; liked: boolean }> => {
+  const response = await api.post(`/blogs/${id}/like`, { userId });
+  return response.data;
+}; 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -40,13 +40,37 @@ export function PostCard({ post, onDelete }: PostCardProps) {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const { toast } = useToast()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, loading } = useAuth()
   const [mediaIndex, setMediaIndex] = useState(0)
   const mediaCount = post.media.length
   const [showLikesModal, setShowLikesModal] = useState(false)
+  const [likeUsers, setLikeUsers] = useState<{ id: string; username: string }[]>([])
+
+  useEffect(() => {
+    async function fetchLikeUsers() {
+      if (likes.length === 0) {
+        setLikeUsers([])
+        return
+      }
+      const users = await Promise.all(
+        likes.map(async (userId) => {
+          try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${userId}`)
+            if (!res.ok) throw new Error()
+            const data = await res.json()
+            return { id: userId, username: data.data.user.username }
+          } catch {
+            return { id: userId, username: userId }
+          }
+        })
+      )
+      setLikeUsers(users)
+    }
+    fetchLikeUsers()
+  }, [likes])
 
   const handleLike = async () => {
-    if (!isAuthenticated || !user?.username) {
+    if (!isAuthenticated || !user?.id) {
       toast({
         title: "Authentication required",
         description: "Please log in to like this post",
@@ -58,9 +82,9 @@ export function PostCard({ post, onDelete }: PostCardProps) {
       setIsLiked((prev) => !prev)
       setLikesCount((prev) => prev + (isLiked ? -1 : 1))
       setLikes((prev) =>
-        isLiked ? prev.filter((u) => u !== user.username) : [...prev, user.username]
+        isLiked ? prev.filter((u) => u !== user.id) : [...prev, user.id]
       )
-      const result = await toggleLikePost(post.id, user.username)
+      const result = await toggleLikePost(post.id, user.id)
       setLikes(result.likes)
       setLikesCount(result.likesCount)
       setIsLiked(result.liked)
@@ -290,13 +314,15 @@ export function PostCard({ post, onDelete }: PostCardProps) {
       <CardFooter className="flex flex-col border-t p-0">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className={`gap-1 ${isLiked ? "text-red-500" : ""}`} onClick={handleLike} aria-label="Like">
+            <Button variant="ghost" size="sm" className={`gap-1 ${isLiked ? "text-red-500" : ""}`} onClick={handleLike} aria-label="Like" disabled={loading}>
               <Heart className={`h-5 w-5 transition-transform duration-200 ${isLiked ? "fill-current scale-125" : "scale-100"}`} />
             </Button>
             <span className="cursor-pointer text-sm" onClick={handleShowLikes}>
-              {likes.length === 0 ? "Be the first to like this" :
-                likes.length === 1 ? `Liked by ${likes[0]}` :
-                `Liked by ${likes[0]} and ${likes.length - 1} other${likes.length > 2 ? 's' : ''}`}
+              {likeUsers.length === 0
+                ? "Be the first to like this"
+                : likeUsers.length === 1
+                  ? `Liked by ${likeUsers[0].username}`
+                  : `Liked by ${likeUsers[0].username} and ${likeUsers.length - 1} other${likeUsers.length > 2 ? 's' : ''}`}
             </span>
             <Button variant="ghost" size="sm" className="gap-1" onClick={() => setShowComments(!showComments)}>
               <MessageSquare className="h-5 w-5" />

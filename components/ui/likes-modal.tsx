@@ -12,7 +12,7 @@ interface UserLike {
 interface LikesModalProps {
   open: boolean;
   onClose: () => void;
-  likes: string[]; // array of usernames
+  likes: string[]; // array of user IDs
 }
 
 const API_BASE_URL = getApiUrl();
@@ -27,22 +27,26 @@ export const LikesModal: React.FC<LikesModalProps> = ({ open, onClose, likes }) 
       return;
     }
     setLoading(true);
-    // Fetch user details for each username
+    // Fetch user details for each user ID
     Promise.all(
-      likes.map(async (username) => {
+      likes.map(async (userId) => {
         try {
-          const res = await fetch(`${API_BASE_URL}/api/users/username/${username}`);
+          const res = await fetch(`${API_BASE_URL}/api/users/${userId}`);
           if (!res.ok) throw new Error();
           const data = await res.json();
           return {
             username: data.data.user.username,
             name: data.data.user.name,
-            avatar: data.data.user.avatar || "/placeholder.svg",
+            avatar: data.data.user.avatar
+              ? data.data.user.avatar.startsWith("http")
+                ? data.data.user.avatar
+                : `${API_BASE_URL}${data.data.user.avatar}`
+              : "/placeholder.svg",
           };
         } catch {
           return {
-            username,
-            name: username,
+            username: userId,
+            name: userId,
             avatar: "/placeholder.svg",
           };
         }
@@ -58,9 +62,6 @@ export const LikesModal: React.FC<LikesModalProps> = ({ open, onClose, likes }) 
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Likes</DialogTitle>
-          <DialogClose asChild>
-            <button className="absolute right-4 top-4 text-2xl" onClick={onClose}>&times;</button>
-          </DialogClose>
         </DialogHeader>
         <div className="divide-y divide-muted max-h-[400px] overflow-y-auto">
           {loading ? (

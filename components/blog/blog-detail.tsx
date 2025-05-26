@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -22,7 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { getApiUrl } from "@/config"
-import { deleteBlog } from "@/lib/api/blog"
+import { deleteBlog, toggleLikeBlog, getBlogLikes } from "@/lib/api/blog"
 
 type BlogMedia = {
   id: string
@@ -74,7 +74,7 @@ export function BlogDetail({
   comments: initialComments,
   isLiked: initialIsLiked = false,
 }: BlogDetailProps) {
-  const [likes, setLikes] = useState(initialLikes)
+  const [likes, setLikes] = useState<string[]>(Array.isArray(initialLikes) ? initialLikes : [])
   const [isLiked, setIsLiked] = useState(initialIsLiked)
   const [comments, setComments] = useState(initialComments)
   const [newComment, setNewComment] = useState("")
@@ -82,23 +82,50 @@ export function BlogDetail({
   const [isDeleting, setIsDeleting] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, loading } = useAuth()
+  const [likeUsers, setLikeUsers] = useState<{ id: string; username: string }[]>([])
 
-  const handleLike = () => {
-    if (!isAuthenticated) {
+  useEffect(() => {
+    async function fetchLikeUsers() {
+      if (likes.length === 0) {
+        setLikeUsers([])
+        return
+      }
+      const users = await Promise.all(
+        likes.map(async (userId) => {
+          try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${userId}`)
+            if (!res.ok) throw new Error()
+            const data = await res.json()
+            return { id: userId, username: data.data.user.username }
+          } catch {
+            return { id: userId, username: userId }
+          }
+        })
+      )
+      setLikeUsers(users)
+    }
+    fetchLikeUsers()
+  }, [likes])
+
+  const handleLike = async () => {
+    if (!isAuthenticated || !user?.id) {
       toast({
         title: "Authentication required",
         description: "Please log in to like this blog",
       })
       return
     }
-
-    if (isLiked) {
-      setLikes(likes - 1)
-      setIsLiked(false)
-    } else {
-      setLikes(likes + 1)
-      setIsLiked(true)
+    try {
+      const result = await toggleLikeBlog(id, user.id)
+      setLikes(result.likes)
+      setIsLiked(result.liked)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to like/unlike blog.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -249,10 +276,16 @@ export function BlogDetail({
 
         <div className="flex items-center justify-between border-t border-b py-4">
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className={`gap-1 ${isLiked ? "text-red-500" : ""}`} onClick={handleLike}>
+            <Button variant="ghost" size="sm" className={`gap-1 ${isLiked ? "text-red-500" : ""}`} onClick={handleLike} disabled={loading}>
               <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />
-              <span>{likes}</span>
             </Button>
+            <span className="cursor-pointer text-sm">
+              {likeUsers.length === 0
+                ? "Be the first to like this"
+                : likeUsers.length === 1
+                  ? `Liked by ${likeUsers[0].username}`
+                  : `Liked by ${likeUsers[0].username} and ${likeUsers.length - 1} other${likeUsers.length > 2 ? 's' : ''}`}
+            </span>
             <Button
               variant="ghost"
               size="sm"
