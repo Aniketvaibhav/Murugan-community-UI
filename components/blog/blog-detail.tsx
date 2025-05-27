@@ -22,7 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { getApiUrl } from "@/config"
-import { deleteBlog, toggleLikeBlog, getBlogLikes } from "@/lib/api/blog"
+import { deleteBlog, toggleLikeBlog, getBlogLikes, getBlogComments, addBlogComment, deleteBlogComment } from "@/lib/api/blog"
 
 type BlogMedia = {
   id: string
@@ -108,6 +108,18 @@ export function BlogDetail({
     fetchLikeUsers()
   }, [likes])
 
+  useEffect(() => {
+    async function fetchComments() {
+      try {
+        const comments = await getBlogComments(id)
+        setComments(comments)
+      } catch {
+        setComments([])
+      }
+    }
+    fetchComments()
+  }, [id])
+
   const handleLike = async () => {
     if (!isAuthenticated || !user?.id) {
       toast({
@@ -129,43 +141,30 @@ export function BlogDetail({
     }
   }
 
-  const handleCommentSubmit = () => {
-    if (!isAuthenticated) {
+  const handleCommentSubmit = async () => {
+    if (!isAuthenticated || !user?.id) {
       toast({
         title: "Authentication required",
         description: "Please log in to comment on this blog",
       })
       return
     }
-
-    if (!newComment.trim()) {
-      return
-    }
-
+    if (!newComment.trim()) return
     setIsSubmittingComment(true)
-
-    // In a real app, this would send the comment to an API
-    setTimeout(() => {
-      const newCommentObj: BlogComment = {
-        id: `comment-${Date.now()}`,
-        author: {
-          id: user?.id || "guest",
-          name: user?.name || "Guest User",
-          avatar: user?.avatar || "/placeholder.svg?height=40&width=40",
-          initials: user?.name ? user.name.substring(0, 2).toUpperCase() : "GU",
-        },
-        content: newComment,
-        date: new Date().toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-      }
-
-      setComments([newCommentObj, ...comments])
+    try {
+      const token = localStorage.getItem('token') || ''
+      const comment = await addBlogComment(id, newComment, token)
+      setComments([comment, ...comments])
       setNewComment("")
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to add comment.",
+        variant: "destructive",
+      })
+    } finally {
       setIsSubmittingComment(false)
-    }, 1000)
+    }
   }
 
   const handleDeleteBlog = async () => {

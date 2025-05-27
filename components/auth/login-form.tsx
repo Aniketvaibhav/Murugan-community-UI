@@ -20,6 +20,7 @@ export function LoginForm() {
     event.preventDefault()
     try {
       await login(email, password)
+      await new Promise(resolve => setTimeout(resolve, 500))
       toast({
         title: "Login successful!",
         description: "Welcome back to the Lord Murugan Community.",

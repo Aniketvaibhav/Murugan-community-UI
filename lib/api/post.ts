@@ -1,5 +1,6 @@
 import { Post, PostMedia } from "@/types/post"
 import { getApiUrl } from "@/config"
+import { api } from "@/lib/api/api"
 
 const API_BASE_URL = getApiUrl()
 const API_URL = `${API_BASE_URL}/api`
@@ -162,32 +163,29 @@ export async function getPostLikes(id: string): Promise<{ likes: string[]; likes
   return response.json();
 }
 
-export async function addComment(id: string, content: string): Promise<void> {
-  const response = await fetch(`${API_URL}/posts/${id}/comments`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(),
-    },
-    body: JSON.stringify({ content }),
-    credentials: "include",
-  })
-
-  if (!response.ok) {
-    throw new Error("Failed to add comment")
-  }
+export const getPostComments = async (postId: string) => {
+  const response = await api.get(`/posts/${postId}`)
+  return response.data.data.post.comments
 }
 
-export async function deleteComment(postId: string, commentId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/posts/${postId}/comments/${commentId}`, {
-    method: "DELETE",
-    credentials: "include",
+export const addPostComment = async (postId: string, content: string, token: string) => {
+  const response = await api.post(
+    `/posts/${postId}/comments`,
+    { content },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  )
+  return response.data.data.comment
+}
+
+export const deletePostComment = async (postId: string, commentId: string, token: string) => {
+  await api.delete(`/posts/${postId}/comments/${commentId}`, {
     headers: {
-      ...getAuthHeaders(),
+      Authorization: `Bearer ${token}`,
     },
   })
-
-  if (!response.ok) {
-    throw new Error("Failed to delete comment")
-  }
+  return true
 } 

@@ -100,28 +100,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null)
       const response = await axios.post(`${API_URL}/auth/login`, { email, password })
       const { token, user: userData } = response.data.data
+      
+      // Set token first
       localStorage.setItem("token", token)
+      
+      // Validate the token by making a request to get user profile
+      const profileResponse = await axios.get(`${API_URL}/users/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const validatedUserData = profileResponse.data.data.user
+
+      // Set user data with proper id mapping
       setUser({
-        id: userData._id,
-        name: userData.name,
-        username: userData.username,
-        email: userData.email,
-        bio: userData.bio || "",
-        location: userData.location || "",
-        avatar: userData.avatar ? (userData.avatar.startsWith('http') ? userData.avatar : `${BACKEND_URL}${userData.avatar}`) : undefined,
-        coverImage: userData.coverImage ? (userData.coverImage.startsWith('http') ? userData.coverImage : `${BACKEND_URL}${userData.coverImage}`) : undefined,
-        createdAt: userData.createdAt,
-        followers: userData.followers || 0,
-        following: userData.following || 0,
-        posts: userData.posts || 0
+        id: validatedUserData._id,
+        name: validatedUserData.name,
+        username: validatedUserData.username,
+        email: validatedUserData.email,
+        bio: validatedUserData.bio || "",
+        location: validatedUserData.location || "",
+        avatar: validatedUserData.avatar ? (validatedUserData.avatar.startsWith('http') ? validatedUserData.avatar : `${BACKEND_URL}${validatedUserData.avatar}`) : undefined,
+        coverImage: validatedUserData.coverImage ? (validatedUserData.coverImage.startsWith('http') ? validatedUserData.coverImage : `${BACKEND_URL}${validatedUserData.coverImage}`) : undefined,
+        createdAt: validatedUserData.createdAt,
+        followers: validatedUserData.followers || 0,
+        following: validatedUserData.following || 0,
+        posts: validatedUserData.posts || 0
       })
       setIsAuthenticated(true)
-      window.location.reload()
+      setLoading(false)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed')
-      throw err
-    } finally {
       setLoading(false)
+      throw err
     }
   }
 

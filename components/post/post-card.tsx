@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { Heart, MessageSquare, Share2, Send, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Post, PostComment } from "@/types/post"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { getMediaUrl, deletePost, toggleLikePost, getPostLikes } from "@/lib/api/post"
+import { getMediaUrl, deletePost, toggleLikePost, getPostLikes, getPostComments, addPostComment, deletePostComment } from "@/lib/api/post"
 import { Avatar } from "@/components/shared/avatar"
 import {
   AlertDialog,
@@ -69,6 +69,18 @@ export function PostCard({ post, onDelete }: PostCardProps) {
     fetchLikeUsers()
   }, [likes])
 
+  useEffect(() => {
+    async function fetchComments() {
+      try {
+        const comments = await getPostComments(post.id)
+        setComments(comments)
+      } catch {
+        setComments([])
+      }
+    }
+    fetchComments()
+  }, [post.id])
+
   const handleLike = async () => {
     if (!isAuthenticated || !user?.id) {
       toast({
@@ -107,39 +119,30 @@ export function PostCard({ post, onDelete }: PostCardProps) {
     } catch {}
   }
 
-  const handleCommentSubmit = () => {
-    if (!isAuthenticated) {
+  const handleCommentSubmit = async () => {
+    if (!isAuthenticated || !user?.id) {
       toast({
         title: "Authentication required",
         description: "Please log in to comment on this post",
       })
       return
     }
-
-    if (!newComment.trim()) {
-      return
-    }
-
+    if (!newComment.trim()) return
     setIsSubmittingComment(true)
-
-    // In a real app, this would send the comment to an API
-    setTimeout(() => {
-      const newCommentObj: PostComment = {
-        id: `comment-${Date.now()}`,
-        author: {
-          id: user?.id || "guest",
-          name: user?.name || "Guest User",
-          avatar: user?.avatar || "/placeholder.svg?height=40&width=40",
-          username: user?.username || "guest",
-        },
-        content: newComment,
-        createdAt: new Date().toISOString(),
-      }
-
-      setComments([...comments, newCommentObj])
+    try {
+      const token = localStorage.getItem('token') || ''
+      const comment = await addPostComment(post.id, newComment, token)
+      setComments([...comments, comment])
       setNewComment("")
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to add comment.",
+        variant: "destructive",
+      })
+    } finally {
       setIsSubmittingComment(false)
-    }, 1000)
+    }
   }
 
   const handleDeletePost = async () => {

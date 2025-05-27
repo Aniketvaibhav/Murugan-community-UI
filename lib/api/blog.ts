@@ -56,4 +56,31 @@ export const getBlogLikes = async (id: string): Promise<{ likes: string[]; likes
 export const toggleLikeBlog = async (id: string, userId: string): Promise<{ likes: string[]; likesCount: number; liked: boolean }> => {
   const response = await api.post(`/blogs/${id}/like`, { userId });
   return response.data;
-}; 
+};
+
+export const getBlogComments = async (blogId: string) => {
+  const response = await api.get(`/blogs/${blogId}`)
+  return response.data.data.blog.comments
+}
+
+export const addBlogComment = async (blogId: string, content: string, token: string) => {
+  const response = await api.post(
+    `/blogs/${blogId}/comments`,
+    { content },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  )
+  return response.data.data.comment
+}
+
+export const deleteBlogComment = async (blogId: string, commentId: string, token: string) => {
+  await api.delete(`/blogs/${blogId}/comments/${commentId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+  return true
+} 
